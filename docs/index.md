@@ -20,7 +20,7 @@ web前端开发 , 主要接触到的语言就是 ` Javascript ` , 主要技术�
 
 目前在跟的项目就是一个 ` Cococscreator ` 的游戏项目 , 还有一个 ` WebSocket ` 的聊天室项目;
 
-后面 , 还是想接触游戏领域 , 包括 ` NodeJS ` 服务端 ;
+后面 , 还是想深度使用 ` NodeJS ` 和 ` Cococscreator `;
 
 #### 关于
 

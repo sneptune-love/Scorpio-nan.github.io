@@ -543,8 +543,26 @@ new Vue({
 </style>
 `````
 *使用方法*
-`````
-
+`````template
+<template>
+	<Keyborad :onShow="onShow" @updateShow="updateShow"/>
+</template>
+import Keyborad from '@/components/Keyborad';
+export default{
+	components:{
+		Keyborad
+	},
+	data(){
+		return{
+			onShow:false
+		}
+	},
+	methods:{
+		updateShow(ev){
+			//这里接收到的就是键盘组件 emit 回来的数据；
+		}
+	}
+}
 `````
 这样, 一个简单的键盘输入组件就完成了, 这里涉及到我们可以在其他的 `<template>` 组件里面通过 `import` 的方式加载这个键盘组件, 然后传入`props`;
 
@@ -556,7 +574,7 @@ new Vue({
 
 > 这里列举一些开发过程中遇到一些问题, 并且附带解决方案, 以便后面再次遇到此类问题的时候, 会马上想到解决方案 ; 
 
-#### 组件复用
+#### 页面级组件复用
 
 实际开发过程中, 经常会遇到这样的需求, 就是页面级组件复用的问题; 如果同一个组件被不同的页面引用的时候, 组件的生命周期不会重新实例化;
 
@@ -591,6 +609,55 @@ computed: {
     }
 }
 `````
+####  Vue检测对象的属性变化
+
+
+###### 1.Vue追踪数据变化
+`Vue` 的响应式原理是把一个普通的 `JavaScript`对象作为 `Vue` 实例下的 `data`选项, `Vue`将遍历此对象的所有属性, 并使用 `Object.defineProperty` 把这些属性全部转换成 `getter/setter`,这些 `getter/setter`对用户来说是不可见的，但是在内部它们让 `Vue `能够追踪依赖，在属性被访问和修改时通知变更。
+
+###### 2.检测对象变化
+上面我们了解了`Vue`检测数据变化是依赖将对象显式声明在 `data`中, `Vue` 才能通过对象的 `getter/setter`去追踪数据变化, 但是在我们日常开发过程中, 有很多的数据是无法预估的, 不能直接显式的声明在 `data` 属性里面, 这个时候, 当我们通过请求之后对数据结构做出变更之后, 视图是没办法实时刷新的;
+
+对于以上需求, `Vue` 官方也给出了方法, 就是通过 `Vue.set(object, propertyName, value)` 向嵌套对象添加相应属性;
+`````javascript
+Vue.set(vm.someObject, 'b', 2)   	
+
+//或者可以使用vue实例方法
+vm.$set(vm.someObject, 'b', 2);
+`````
+有时候我们可能需要对对象赋值多个新属性, 比如使用 `Object.assign()` 或者是 `_.extend()`,但是,这样添加到对象上面的属性不会触发更新,在这种情况下，你应该用原对象与要混合进去的对象的属性一起创建一个新的对象。
+
+`````javascript
+// 代替 `Object.assign(this.someObject, { a: 1, b: 2 })`
+this.someObject = Object.assign({}, this.someObject, { a: 1, b: 2 })
+`````
+
 #### 一键换肤
 
-使用手机APP应用的时候, 一些APP里面会有一个一键换肤的功能; 
+使用手机APP应用的时候, 一些APP里面会有一个一键换肤的功能; 换肤功能对用户来讲, 也是可以缓解一下视觉疲劳, 增加一些趣味感的;
+
+换肤功能的本质是替换掉 `style` 样式, 使用另外一个 `css` 文件; 知道了怎么去做, 那我们就可以通过这个思路去实现;
+
+###### 1.定义全局scss 文件;
+
+首先, 我们需要在静态资源里面新建一个 `theme` 文件夹, 这个文件夹里面, 主要存放定义全局所使用到的主题颜色;(一个APP肯定会有一个主题色, 其他的颜色基本上都是辅助色),
+所以, 我们可以在 `theme` 文件夹里面新建一些主题色的 scss文件; (blue.scss , red.scss 等);
+
+*public.scss* 
+`````scss
+//@import './theme/lightviolet.scss';               //浅紫色
+@import './theme/lightblue.scss';               	//浅蓝色
+//@import './theme/lightred.scss';                	//浅红色
+//@import './theme/yellow.scss';                  	//土豪金
+//@import './theme/lightyellow.scss';             	//玛雅黄色
+//@import './theme/lightorange.scss';             	//淘宝红
+`````
+
+###### 2.组件引入
+
+然后在 `public.scss` (这个文件主要定义的是全局的css样式, 例如 animation 移动端的 border 1px 等)里面引入一下 `theme` 文件夹下面的主题色文件了;接着, 我们把 `public.scss` 文件在 `template`里面引入;
+就可以直接在 `style` 里面使用 `blue.scss`里面的变量了;
+
+###### 3.使用方法
+
+
