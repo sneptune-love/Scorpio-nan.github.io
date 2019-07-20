@@ -9,7 +9,7 @@
 
 
 # server runing http://localhost:3000
-~ $ docsify serve docs
+~ $ docsify serve
 
 
 `````

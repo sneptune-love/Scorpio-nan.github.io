@@ -625,12 +625,57 @@ Vue.set(vm.someObject, 'b', 2)
 //或者可以使用vue实例方法
 vm.$set(vm.someObject, 'b', 2);
 `````
-有时候我们可能需要对对象赋值多个新属性, 比如使用 `Object.assign()` 或者是 `_.extend()`,但是,这样添加到对象上面的属性不会触发更新,在这种情况下，你应该用原对象与要混合进去的对象的属性一起创建一个新的对象。
+有时候我们可能需要对对象赋值多个新属性, 比如使用 `Object.assign()` 或者是 `_.extend()`,但是,这样添加到对象上面的属性不会触发更新,在这种情况下, 你应该用原对象与要混合进去的对象的属性一起创建一个新的对象。
 
 `````javascript
 // 代替 `Object.assign(this.someObject, { a: 1, b: 2 })`
 this.someObject = Object.assign({}, this.someObject, { a: 1, b: 2 })
 `````
+
+###### 3.watch 监听不到对象属性变化
+我们在使用 `Vue props` 向子组件传参数的时候, 子组件监听传入对象的某个属性, 发现 `watch` 不能监测到对象里面数据的变化,代码如下:
+
+`````javascript
+<script>
+	export default{
+		data(){
+			return{}
+		},
+		props:{   				  //固定参数类型为 Object
+			obj:{
+				type:Object,
+				defalut:{}
+			}
+		},
+		watch:{
+			obj(oval,nval){
+				
+			}
+		}
+	}
+</script>
+`````
+`Vue` 官方给我们提供的 `Vue.set()`是一个比较简单易用的为对象添加动态属性的方法, 但是如果需要为一个对象添加多层自定义属性, 这种语法写起来就比较麻烦了;而且代码也是比较难看的, 这个时候我们就可以使用一个简单暴力的方法, 利用原生 JS 的 `JSON.stringify()` 先将对象转换成一个字符串, 这个时候 data 里面的属性也可以是个字符串, 这样就能实时监测字符串的变化了;
+`````javascript
+<script>
+	export default{
+		data(){
+			return{}
+		},
+		props:['obj'],				  //参数类型随意
+		watch:{
+			obj:{
+				deep:true, 			 //深度监听
+				immediate: true,    	//首次加载自运行
+				handler(oval,nval){ 	//事件函数
+					JSON.parse(nval);
+				}
+			}
+		}
+	}
+</script>
+`````
+
 
 #### 一键换肤
 
@@ -639,12 +684,11 @@ this.someObject = Object.assign({}, this.someObject, { a: 1, b: 2 })
 换肤功能的本质是替换掉 `style` 样式, 使用另外一个 `css` 文件; 知道了怎么去做, 那我们就可以通过这个思路去实现;
 
 ###### 1.定义全局scss 文件;
-
 首先, 我们需要在静态资源里面新建一个 `theme` 文件夹, 这个文件夹里面, 主要存放定义全局所使用到的主题颜色;(一个APP肯定会有一个主题色, 其他的颜色基本上都是辅助色),
 所以, 我们可以在 `theme` 文件夹里面新建一些主题色的 scss文件; (blue.scss , red.scss 等);
 
 *public.scss* 
-`````scss
+`````css
 //@import './theme/lightviolet.scss';               //浅紫色
 @import './theme/lightblue.scss';               	//浅蓝色
 //@import './theme/lightred.scss';                	//浅红色
@@ -652,12 +696,206 @@ this.someObject = Object.assign({}, this.someObject, { a: 1, b: 2 })
 //@import './theme/lightyellow.scss';             	//玛雅黄色
 //@import './theme/lightorange.scss';             	//淘宝红
 `````
+*lightblue.scss*
+`````css
+$bgColor:#f5f6f7;           //全局的背景颜色                              
 
-###### 2.组件引入
+$warnColor:#ec5050;         //全局警示性颜色
 
-然后在 `public.scss` (这个文件主要定义的是全局的css样式, 例如 animation 移动端的 border 1px 等)里面引入一下 `theme` 文件夹下面的主题色文件了;接着, 我们把 `public.scss` 文件在 `template`里面引入;
-就可以直接在 `style` 里面使用 `blue.scss`里面的变量了;
+$successColor:#34a853;      //全局成功颜色
+                         
+$importFontColor:#333;      //全局重要文字
 
-###### 3.使用方法
+$normalFontColor:#666;      //全局普通文字
+`````
+###### 2.使用方法
+然后在 `public.scss` (这个文件主要定义的是全局的css样式, 例如 animation 移动端的 border 1px 等)里面引入一下 `theme` 文件夹下面的主题色文件了; 接着, 我们把 `public.scss` 文件在 `template`里面引入;
+就可以直接在 `style` 里面使用 `lightblue.scss`里面的变量了;
+
+这样有一个问题就是, 我们的代码在本地换肤的时候, 基本上是没问题的, 只需要手动去替换掉 `public.scss` 里面引入的地址就可以了; 但是打包上线的时候, 换肤功能就没办法正常使用了, 因为打包出来文件里面只会将当前引用的 `.scss ` 文件打包进去, 这样发布的时候就还是只有一套主题色,并且, 还没办法通过换肤的按键去动态切换皮肤, 因为 `webpack` 打包的时候, 将组件里面的 css 都打包到 js文件中去了;
+
+###### 3.一键换肤方案
+上面, 我们实现了一键换肤的核心功能, 但是, 我们还需要将组件里面 `style` 提取到 `.css`, 这里我们需要用到 `webpack` 的一个css的插件,[extract-text-webpack-plugin](https://webpack.docschina.org/plugins/extract-text-webpack-plugin/), 它会将所有入口文件中引用的 .css 文件都打包到一个独立的css文件中去;
+
+*webpack.prod.conf.js*
+`````javascript
+....
+plugins:[
+	new ExtractTextPlugin({
+		filename: utils.assetsPath('css/[name].[contenthash].css'),
+    	allChunks: true				//此配置标识为是否需要开启提取css文件
+    }),
+]
+....
+`````
+这样, 我们每更换一次scss的引用,再运行打包一次, 就可以拿到不同皮肤的样式表; 
+但是, 随着站点的增多, 以及皮肤的增多, 每次我们需要浪费很多时间在打包这个事情上(如果有5个主题色的话, 要手动切换5次文件, 并打包5次),这个开销是非常巨大的;所以,针对这个,我们还需要优化;
+
+###### 4.最终方案
+> 问题思考:换肤的本质是通过更换 style 样式达到目的, style 又可以通过不同的 class 类名来控制, 那我们是不是可以预先生成好所有的主题色, 然后通过切换类名来达到换肤的目的; 这样就解决了每次打包发布的时候要打包多次的尴尬了;
+
+1). 首先, 我们把所有的theme文件里面的变量都提取到 `core.scss` 里面;
+
+*core.scss*
+`````css
+$array:(
+    lightblue     :#19b4f5,             //冰川蓝
+    lightorange   :#ed742e,             //旺旺红
+    lightviolet   :#8c19ff,             //高贵紫
+    lightyellow   :#ff9800,             //帝王黄
+    lightred      :#ff1a18,             //法拉利红
+    yellow        :#f7ab00              //土豪金
+);
+@each $key,$val in $array{
+    //选中的背景
+    .#{$key}-active{
+        &:active{
+            border: 0;
+            background: rgba($val, 0.6);
+        }
+    }
+    //input focus框高亮
+    .#{$key}-focus{
+        &:focus{
+            border: 1px solid $val;
+        }
+    }
+	....
+}
+`````
+2). 在 `main.js` 里面直接引入;
+`````javascript
+import '../static/sass/core.scss'; 
+`````
+这里需要注意的是, main 里面引入的 scss 文件里面的变量, 在组件里面是不能使用的, 因为在 mian 里面的 scss 会被组件加载之前就被 scss-loader 编译成普通的 css 文件了;
+
+并且, 如果我们在组件里面写 css3 的一些新的属性的时候, postCss-loader 和 autoprefixer 会为我们补全浏览器前缀; (后面会写一篇 webpack 的笔记来详细介绍一下这些 loaders);但是在 main.js 里面引入的 scss 文件不会被处理, 这也是因为 `webpack.prod.conf.js` 里面配置的入口文件是 main; 
+
+所以, core.scss 这个文件里面有用到 css3 的属性的地方, 我们需要手动添加一下前缀(好在用到的地方就几行代码);
+
+3). 配合 `Vuex` 达到动态换肤的效果;
+上面, 我们是将所有用到的 theme 都通过不同的类名打包到同一个 css 文件中了, 编译出来大概是这个样子的;
+`````css
+.lightblue-active{
+	background: rgba(25,180,245, 0.6);
+}
+.lightorange-active{
+	background: rgba(237,116,46, 0.6);
+}
+.lightviolet-active{
+	background: rgba(140,25,255, 0.6);
+}
+.lightyellow-active{
+	background: rgba(255,152,0, 0.6);
+}
+.lightred-active{
+	background: rgba(255,26,24, 0.6);
+}
+.yellow-active{
+	background: rgba(247,171,0, 0.6);
+}
+`````
+我们需要通过切换不同的类名来达到换肤的功能; 这里, 我们可以借用 vuex 和 cookie 来动态切换和对切换过后的 theme 做持久化;
+
+*store/actios*
+`````javascript
+const THEME = {
+	lightblue: {
+		Class: 'lightblue',
+		name:'冰川蓝'
+	},
+	lightorange: {
+		Class: 'lightorange',
+		name:'旺旺红'
+	},
+	lightviolet: {
+		Class: 'lightviolet',
+		name:'高贵紫'
+	},
+	lightyellow: {
+		Class: 'lightyellow',
+		name:'帝王黄'
+	},
+	lightred: {
+		Class: 'lightred',
+		name:'法拉利红'
+	},
+	yellow: {
+		Class: 'yellow',
+		name:'土豪金'
+	}
+}
+//vuex 的其他操作, 这里就不再过多赘述, 只写出 actions 部分
+export default{
+	setCurrentTheme({commit}, res) {
+		commit(CURRENTTHEME, THEME[res]);
+		var obj = {
+			name: THEME[res].name,
+			color: THEME[res]
+		}
+		$.cookie('THEME', JSON.stringify(obj), {expires: 365});
+	},
+}
+`````
+*App.vue*
+`````javascript
+export default{
+	beforeCreate() {
+		this.$nextTick(() => {
+			var theme = null;
+			var obj;
+			theme = $.cookie('THEME');
+			if(theme) {
+				theme = JSON.parse(theme);
+			}else {
+				obj = {
+					name: '帝王黄',
+					color: 'lightyellow'
+				}
+				$.cookie('THEME', JSON.stringify(theme), {
+					expires: 365
+				});
+				theme = obj;
+			}
+			try {
+				this.$store.dispatch('setCurrentTheme', theme.color);
+			} catch(err) {
+				console.log('%c 没有获取到用户选择的皮肤，将使用默认皮肤~');
+			}
+		})
+	},
+}
+`````
+首次的时候, 会去判断一下 cookie 里面是否有存在之前设置过的主题色, 如果有就用之前设置过的, 如果没有就用默认黄色;
+
+*template*
+`````html
+<template>
+	<span class="iconfont" :class="color + '-active'">清除缓存</span>
+</template>
+<script>
+export default{
+	computed:{
+		color(){
+			return this.$store.getters.getCurrentTheme;
+		}
+	}
+}
+</script>
+`````
+然后换肤功能使用也是比较简单的, 需要更换皮肤的时候调用一下 ` that.$store.dispatch('setCurrentTheme', color) `; 至此, 一键换肤的功能就完美实现了;
+
+当然, 这样做有一个弊端就是打包出来的文件提交会比较大, 这个优化工作详见后面写的 `webpack` 笔记;
+
+
+
+
+
+
+
+
+
+
+
 
 
