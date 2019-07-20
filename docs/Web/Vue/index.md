@@ -543,7 +543,7 @@ new Vue({
 </style>
 `````
 *使用方法*
-`````template
+`````html
 <template>
 	<Keyborad :onShow="onShow" @updateShow="updateShow"/>
 </template>
