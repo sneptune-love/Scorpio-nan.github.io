@@ -51,7 +51,9 @@ react-native 搭建 Android 环境的时候, 还是比较繁琐的; 具体安装
 ###### 2.Android SDK 和虚拟机
 安装完 `Android Studio` 之后, 我们还需要下载安装 Android 的 SDK 和启动虚拟机; 
 
-在开发工具的工具栏里面有一个 `Tools` 选项, 下面有一个 `SDK Manager` 和 `AVD Manager`; 这两个就是我们开发 RN 的依赖; 当然如果需要开发 `Flutter` 那还可以安装 `Flutter` 的插件; 这里我们安装的 SDK 的版本号是9.0+; 需要注意的是安装完 SDK 之后, 我们还需要去开启 Windows 上虚拟机权限;
+在开发工具的工具栏里面有一个 `Tools` 选项, 下面有一个 `SDK Manager` 和 `AVD Manager`; 这两个就是我们开发 RN 的依赖; 当然如果需要开发 `Flutter` 那还可以安装 `Flutter` 的插件; 这里我们安装的 SDK 的版本号是9.0+; 需要注意的是安装完 SDK 之后, 我们还需要去开启 Windows 上虚拟机权限; 不然虚拟机调试的时候会报错;
+
+###### 3.
 
 
 

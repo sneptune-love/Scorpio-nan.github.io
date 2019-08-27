@@ -887,12 +887,100 @@ export default{
 
 当然, 这样做有一个弊端就是打包出来的文件提交会比较大, 这个优化工作详见后面写的 `webpack` 笔记;
 
+#### Vue SEO 优化
 
+##### seo优化之预渲染prerender-spa-plugin
+平常我们开发过程中都是使用 `vue-cli`来开发项目, 但是这种 spa 应用是非常不利于 seo 优化的;而 Vue 针对 seo 优化也有自己的解决方案; `vue ssr`[Vue服务器端](https://ssr.vuejs.org/zh/) 和 [NUXT](https://zh.nuxtjs.org/guide/installation); 这些都是 vue 的服务端渲染方案;
 
+预渲染, 相对于 SSR 比较简单, 并且可以极大的提高网页的性能; 而且, 配合一些 meta 插件, 基本上能完全满足 SEO 需求;
 
+安装
+`````bash
+npm install prerender-spa-plugin vue-meta-info --save
+`````
+`prerender-spa-plugin` 安装过程中, 会为我们下载一个 chromeium 的浏览器; 原理就是将我们页面的路由全部在浏览器中打开一次, 然后爬出页面相对应的内容, 再输出为 html 静态文件; `vue-meta-info` 这个插件的作用是为我们每一个打包出来的静态页面添加一个 title , content, discripetion , 也就是我们 seo 优化内容里面的关键词;
 
+> 需要注意的是, 使用这个插件, 路由就需要改成同步加载的方式;
 
+配置
 
+***webpack.prod.conf.js***
+`````javascript
+const PrerenderSPAPlugin = require('prerender-spa-plugin')   //引用插件
+const Renderer = PrerenderSPAPlugin.PuppeteerRenderer;
+//webpack的plugin 下面添加一个插件
+...
+plugins:[
+	// 配置PrerenderSPAPlugin
+	new PrerenderSPAPlugin({
+		// 生成文件的路径，也可以与webpakc打包的一致。
+		staticDir: path.join(__dirname, '../dist'),
+
+		// 对应自己的路由文件，比如index有参数，就需要写成 /index/param1。
+		routes: ['/', '/allLottery','/openResult','/DaohanZhandian','/caiba','/Home'],
+
+		// 这个很重要，如果没有配置这段，也不会进行预编译
+		// renderer: new Renderer({
+		// 	inject: {
+		// 	  foo: 'bar'
+		// 	},
+		// 	headless: false,
+		// 	// 在 main.js 中 document.dispatchEvent(new Event('render-event'))，两者的事件名称要对应上。
+		// 	//renderAfterDocumentEvent: 'render-event'
+		// })
+		
+		//一开始是用上面那种写法, 但是编译会报错;
+		renderer: new PrerenderSPAPlugin.PuppeteerRenderer({//这样写renderAfterTime生效了
+			renderAfterTime: 5000
+		})
+	}),
+]
+`````
+修改完 webpack 配置之后, 我们还需要在 main.js 里面添加一行配置
+
+***main.js***
+`````javascript
+new Vue({
+    el: '#app',
+    router,
+    store,
+    components: { App },
+    template: '<App/>',
+	mounted () {
+        document.dispatchEvent(new Event('render-event'))
+        //document.dispatchEvent(new Event('custom-render-trigger'))
+	}
+})
+`````
+这样, 就配置完成了, 再次运行一下 `npm run build` 会看到 dist 目录下面, 我们的代码全都被打包成了一个个的 .html文件;
+
+##### 头部标签插件vue-meta-info
+上面, 我们已经安装好了 `vue-meta-info` 插件, 再次修改一下 main.js, 在 main 里面添加;
+
+***main.js***
+`````javascript
+import MetaInfo from 'vue-meta-info';
+Vue.use(MetaInfo);
+`````
+***template.vue***
+`````javascript
+export default {
+	metaInfo: {
+		title: 'We Inc',
+		meta: [
+			{
+				name: 'keywords',
+				content: '关键字1,关键字2,关键字3'
+			},
+			{
+				name: 'description',
+				content: '这是一段网页的描述'
+			}
+		]
+	}
+}
+`````
+这样, 就可以将关键字预渲染到 .html 页面中去了;
 
 
 
