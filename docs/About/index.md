@@ -1,1 +1,17 @@
- * [khlk]
+### 关于
+- PC            Vue + Vuex + Webpack + ES6 + ElementUI
+- Wap           Vue + Vuex + Webpack + ES6 + VUX
+- Wap           Vue + Vuex + Webpack + ES6 + Mui
+    - Android   Vue + Dcloud
+    - IOS
+- Tool          Node + MySql + Vue + Iview + ES6 + Electron 
+- Admin         Vue + LayUI
+- AdminCDN      Vue + Webpack.4x + ES6 + Element
+- 官网 v1.0     JQuery + Bootstrap
+- 官网 v2.0     Vue + Webpack + ES6 + I18n + ElementUI
+- 开奖网        Vue + Vuex + Webpack + ES6 + ElementUI
+- 开奖网wap     Vue + Vuex + Webpack + ES6 + Cube
+- HK6           Vue + Vuex + Webpack + ES6 + ElementUI
+- HK6 wap       Vue + Vuex + Webpack + ES6 + Cube
+- Morocco       Vue
+- Cailiao       Vue + Vuex + Webpack + ES6 + Mui + WebSocket

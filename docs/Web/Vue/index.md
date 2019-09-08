@@ -568,7 +568,86 @@ export default{
 
 这里涉及到了一些功能点 `vue`组件之间的通信`props`, `$emit`等, 详见 [vue props](https://cn.vuejs.org/v2/guide/components-props.html);
 
-这里只是项目中实现的一个简单的键盘组件, 其他更多复杂的组件可以去[我的 github](https://github.com/Scorpio-nan/H5-CSS3/tree/master/Vue-Components) vue 组件库;
+这里只是项目中实现的一个简单的键盘组件, 更多其他的组件可以去[我的 github](https://github.com/Scorpio-nan/H5-CSS3/tree/master/Vue-Components) vue 组件库;
+
+### 插件开发
+
+#### Vue.use() API
+ 
+我们在做 ` Vue ` 开发的时候, 经常会接触到 `Vue.use()` 方法, 那么, 关于 `Vue.use()` 我们都知道什么呢? [Vue 插件](https://cn.vuejs.org/v2/guide/plugins.html);
+
+我们看一下 `Vue` 项目初始化的时候, `Vue.use()` 的使用场景:
+
+`````javascript
+import Vue from "vue";
+import Router from "vue-router";
+Vue.use(Router);
+`````
+上面, 我们对 `vue-router` 这个插件使用了 `Vue.use()` 方法,  这样, 我们在每一个 Vue 的实例(.vue 文件)下都能通过 `this.$router`, `this.$route` 来访问 `vue-router` 这个插件里面的方法了;
+
+而 `Router` 的注册就要去分析一下 `Vue.use()` 的源码了, 在分析源码之前总结一下官方对 `Vue.use()` 方法的说明:
+- 通过全局方法 `Vue.use()` 使用插件;
+- `Vue.use ` 会自动阻止多次注册相同插件，届时即使多次调用也只会注册一次该插件。
+- `Vue.use() ` 方法至少传入一个参数，该参数类型必须是 `Object `或  `Function`, 如果是 `Object `那么这个 `Object` 需要定义一个 `install` 方法, 如果是 `Function `那么这个函数就被当做 `install `方法. 在 `Vue.use()` 执行时 `install `会默认执行, 当 `install` 执行时第一个参数就是 `Vue`, 其他参数是 `Vue.use()` 执行时传入的其他参数.
+
+官网上说`Vue.use()` 是用来注册插件的, 那么传入的 `Router` 就是这里指的插件, 而这个插件本质上又是一个 `install` 方法, 至于 `install` 内部实现了什么逻辑, 就由插件自身的业务决定了 [awesome-vue](https://github.com/vuejs/awesome-vue#components--libraries) 集合了大量由社区贡献的插件和库;
+
+下面我们分析一下源码,  `Vue.use()` 的源码很简单, 30行代码都不到 , 首先看看 src/core/global-api/use.js 下 `Vue.use() `方法的定义：
+`````javascript
+import { toArray } from '../util/index'
+export function initUse (Vue: GlobalAPI) {
+	Vue.use = function (plugin: Function | Object) {
+		const installedPlugins = (this._installedPlugins || (this._installedPlugins = []))
+		if (installedPlugins.indexOf(plugin) > -1) {
+			return this;
+		}
+		const args = toArray(arguments, 1);
+		args.unshift(this);
+		if (typeof plugin.install === 'function') {
+			plugin.install.apply(plugin, args)
+		} else if (typeof plugin === 'function') {
+			plugin.apply(null, args)
+		}
+		installedPlugins.push(plugin);
+		return this;
+	}
+}
+`````
+上面的源码里面使用了工具函数 `toArray `, 该函数定义在 src/shared/util.js
+`````javascript
+export function toArray (list: any, start?: number): Array<any> {
+	start = start || 0
+	let i = list.length - start
+	const ret: Array<any> = new Array(i)
+	while (i--) {
+		ret[i] = list[i + start]
+	}
+	return ret
+}
+`````
+源码里面首先在 Vue 全局 api 下面定义了一个 use 方法, 接收一个 plugin 为参数, 这就和前面官方定义的 `Vue.use()`第一个参数要求的类型对应的上了; 
+
+`Vue.use = function (plugin: Function | Object)`; 这句是 [Flow](https://zhenyong.github.io/flowtype/) 语法, 类似于微软新坑 [TypeScript](https://www.tslang.cn/); 用来检测 `javascript`数据类型的; 这里的 plugin 参数可以是一个 Function 也可以是一个 Object 类型;
+
+`if (installedPlugins.indexOf(plugin) > -1)` ; 用来判断该插件是不是已经注册过, 防止重复注册.
+
+`const args = toArray(arguments, 1)` ; arguments 是 Vue.use() 方法的参数列表是一个类数组, 后面的 1 先理解成一个常量, toArray 方法的作用就是把第一个 Array 参数从下标为1截取到最后. 也就拿到了 Vue.use() 方法除去第一个之外的其他参数, 这些参数准备在调用 instll 方法的时候传入.
+
+`if (typeof plugin.install === 'function') {`
+
+`} else if (typeof plugin === 'function') {` ; 这里的if语句是判断 Vue.use() 传入的第一个参数是 Object 还是 Function.
+
+`plugin.install.apply(plugin, args)`
+`plugin.apply(null, args)` ; 判断完之后执行那个对应的 install 方法, 用 apply 改变 this 指向, 并把 toArray 得到的剩余参数传入.
+
+`installedPlugins.push(plugin)` ; 最后记录该组件已经注册过了
+
+现在, 我们发现了 `Vue.use ` 本质上就是执行了一个 install 方法, install 里面的方法由开发者自定义;
+
+
+
+
+
 
 ### 常见问题
 
