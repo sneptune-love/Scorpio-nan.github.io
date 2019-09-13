@@ -616,8 +616,10 @@ $ git status
 - 组合: `git clone --branch <branch_name> <remote-address> --depth 1`
 
 `-- depth` 代表克隆的深度, `--depth 1`代表只克隆最新一次提交记录以及这次提交之后的最新内容, 不克隆历史提交, 所造成的影响就是不能查看历史提交记录, 但是克隆速度大大提升;
-
-
+`````bash
+$ git clone --branch=dev http://git.nbet-group.com dev --depth=1
+`````
+`git clone` 命令, `url` 后面如果添加名称的话, 那克隆下来的文件夹名称就是命令行添加的名称, 如果不加则以克隆下来的项目名命名文件夹;
 
 
 

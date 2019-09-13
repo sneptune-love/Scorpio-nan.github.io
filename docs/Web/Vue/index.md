@@ -590,13 +590,13 @@ Vue.use(Router);
 - `Vue.use ` 会自动阻止多次注册相同插件，届时即使多次调用也只会注册一次该插件。
 - `Vue.use() ` 方法至少传入一个参数，该参数类型必须是 `Object `或  `Function`, 如果是 `Object `那么这个 `Object` 需要定义一个 `install` 方法, 如果是 `Function `那么这个函数就被当做 `install `方法. 在 `Vue.use()` 执行时 `install `会默认执行, 当 `install` 执行时第一个参数就是 `Vue`, 其他参数是 `Vue.use()` 执行时传入的其他参数.
 
-官网上说`Vue.use()` 是用来注册插件的, 那么传入的 `Router` 就是这里指的插件, 而这个插件本质上又是一个 `install` 方法, 至于 `install` 内部实现了什么逻辑, 就由插件自身的业务决定了 [awesome-vue](https://github.com/vuejs/awesome-vue#components--libraries) 集合了大量由社区贡献的插件和库;
+官网上说`Vue.use()` 是用来注册插件的, 那么传入的 `Router` 就是这里指的插件, 而这个插件本质上又是一个 `install` 方法, 至于 `install` 内部实现了什么逻辑, 就由插件自身的业务决定了 ([awesome-vue](https://github.com/vuejs/awesome-vue#components--libraries) 集合了大量由社区贡献的插件和库);
 
 下面我们分析一下源码,  `Vue.use()` 的源码很简单, 30行代码都不到 , 首先看看 src/core/global-api/use.js 下 `Vue.use() `方法的定义：
 `````javascript
 import { toArray } from '../util/index'
 export function initUse (Vue: GlobalAPI) {
-	Vue.use = function (plugin: Function | Object) {
+	Vue.use = function (plugin: Function | Object) {  
 		const installedPlugins = (this._installedPlugins || (this._installedPlugins = []))
 		if (installedPlugins.indexOf(plugin) > -1) {
 			return this;
@@ -644,11 +644,163 @@ export function toArray (list: any, start?: number): Array<any> {
 
 现在, 我们发现了 `Vue.use ` 本质上就是执行了一个 install 方法, install 里面的方法由开发者自定义;
 
+#### Toast 插件实践
+>上面我们了解了, `Vue.use` 实际上是用来为 Vue 添加全局功能; 下面我们开发一个简单的 `Toast` 插件;
 
+首先, 我们在 `src` 目录下面新建一个 `plugin` 文件夹, 这个文件夹专用来放我们自定义的插件;
+`````
+|-- build
+|-- config
+|-- src
+|	|-- components
+|	|-- plugin
+|	|	|-- Toast
+|	|	|	|-- index.js
+|	|	|	|-- Toast.vue
+|-- static
+`````
+将来, 我们会有很多的插件, 这里就使用插件名为文件夹名称;
+***index.js***
+`````javascript
+import ToastTpl from './Toast';
+export default {
+    install(Vue, options) {
+        Vue.prototype.$Toast = function (options) {
+            const Toast = Vue.extend(ToastTpl);
+            
+            let $tpl = null;
+			//单例模式, 防止重复创建模板;
+            if (!$tpl) {
+                $tpl = new Toast();
+                $tpl.$mount();
+            }
+            //如果调用的地方传递过来的直接是一个字符串, 那就直接弹出字符串;
+            if (typeof options === 'string') {
+                $tpl.options.content = options;
+                options = {};
+            }
+            //为了确保组件里面能拿到传进来的 options , 将默认属性和传进来的参数合并;
+            Object.assign($tpl.options, options);
 
+            //创建的时候就调用组件里面的属性, 用来控制过渡动画
+            $tpl.visible = true;
 
+            document.body.appendChild($tpl.$el);
 
+            setTimeout(function () {
+                //根据插件被调用的时间来执行组件的关闭事件, 触发动画钩子;
+                $tpl.visible = false;
+            }, $tpl.options.duration)
+        }
+    }
+}
+`````
+`index.js` 文件里面, 我们对外暴露了一个 `install` 的方法, 这个是要将模块导出为 `Vue.use()` 使用的方法  [Vue 插件](https://cn.vuejs.org/v2/guide/plugins.html); 
 
+`Vue.extend()` 使用一个 `Vue` 构造器创建了一个子类, 我们将 `ToastTpl` 作为参数传递进去, 返回的就是一个 `Vue` 的 `Component`;
+
+`$mount()` 为 Dom 节点挂载点 [Vue 实例挂载的实现](https://ustbhuangyi.github.io/vue-analysis/data-driven/mounted.html);
+
+然后我们可以通过 `$tpl` 来调用 `Compoent` 里的属性和方法; 并将生成的 DOM 节点插入到 `body` 里面去;
+
+***Toast.vue***
+`````html
+<template>
+    <transition name="fade" @after-leave="handleAfterLeave">
+        <div class="ui-alert" v-show="visible">
+            {{options.content}}
+        </div>
+    </transition>
+</template>
+<script>
+    export default {
+        name: "alert",
+        data() {
+            return {
+                //弹出框默认配置
+                options: {
+                    duration: 2500,
+                    type: 'info',
+                    mask: true,
+                    width: 'auto',
+                    content: ''
+                },
+                visible: false,
+                closed:false
+            }
+        },
+        methods: {
+            handleAfterLeave(el) {
+                //console.log(el);
+				/* 
+				 * transition 对应的动画钩子
+                 * v-on:before-enter="beforeEnter"
+                 * v-on:enter="enter"
+                 * v-on:after-enter="afterEnter"
+                 * v-on:enter-cancelled="enterCancelled"
+                 * v-on:before-leave="beforeLeave"
+                 * v-on:leave="leave"
+                 * v-on:after-leave="afterLeave"
+                 * v-on:leave-cancelled="leaveCancelled"
+                 *  返回的都是 Node 节点
+                 **/
+                //动画执行完成之后销毁dom节点
+                this.$destroy(true);
+                this.$el.parentNode.removeChild(this.$el);
+            }
+        }
+    }
+</script>
+<style scoped>
+    .ui-alert {
+        position:fixed;
+        left:50%;
+        top:50%;
+        transform:translate(-50%,-50%);
+        background:rgba(0,0,0,0.8);
+        border-radius:5px;
+        color:#fff;
+        padding:6px 12px;
+        transition:all .75s ease;
+        font-size:14px;
+        max-width:200px;
+    }
+    .fade-enter,
+    .fade-leave-active {
+        opacity: 0;
+    }
+    .fade-leave-active,
+    .fade-enter-active {
+        transition: opacity 300ms !important;
+    }
+</style>
+`````
+`Toast` 组件提供了一个 `visible` 属性用来控制 `transition` 动画, 这里面巧妙的利用了 `transition` 动画的 `javascript` 钩子函数; 动画执行完成之后销毁 Dom 节点;
+
+完成之后, 我们就可以使用 `Vue.use()` 方法来为 `Vue` 实例添加全局的 `$Toast` 方法了;
+
+***main.js***
+`````javascript
+import Toast from '@/plugin/Toast';
+Vue.use(Toast);
+...
+`````
+然后我们就可以直接在组件里面通过 `this.$Toast()` 来使用 `Toast` 插件了;
+
+***template.vue***
+`````javascript
+...
+methods:{
+	onItemClick(){
+		this.$Toast('字符串');
+		this.$Toast({
+			content:'字符串',
+			duration:3000
+		})
+	}
+}
+...
+`````
 ### 常见问题
 
 > 这里列举一些开发过程中遇到一些问题, 并且附带解决方案, 以便后面再次遇到此类问题的时候, 会马上想到解决方案 ; 
@@ -979,7 +1131,7 @@ npm install prerender-spa-plugin vue-meta-info --save
 `````
 `prerender-spa-plugin` 安装过程中, 会为我们下载一个 chromeium 的浏览器; 原理就是将我们页面的路由全部在浏览器中打开一次, 然后爬出页面相对应的内容, 再输出为 html 静态文件; `vue-meta-info` 这个插件的作用是为我们每一个打包出来的静态页面添加一个 title , content, discripetion , 也就是我们 seo 优化内容里面的关键词;
 
-> 需要注意的是, 使用这个插件, 路由就需要改成同步加载的方式;
+> 需要注意的是, 使用这个插件, 路由就需要改成同步加载的方式, 并且只支持 `history` 模式;
 
 配置
 
