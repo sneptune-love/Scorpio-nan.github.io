@@ -648,7 +648,7 @@ export function toArray (list: any, start?: number): Array<any> {
 >上面我们了解了, `Vue.use` 实际上是用来为 Vue 添加全局功能; 下面我们开发一个简单的 `Toast` 插件;
 
 首先, 我们在 `src` 目录下面新建一个 `plugin` 文件夹, 这个文件夹专用来放我们自定义的插件;
-`````
+`````txt
 |-- build
 |-- config
 |-- src
