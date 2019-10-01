@@ -74,7 +74,7 @@ npm i -D webpack@beta
 
 ***package.json***
 ````json
-...
+//...
 "devDependencies": {
     "webpack": "^4.40.2",
     "webpack-cli": "^3.3.9"
@@ -141,11 +141,11 @@ module.exports = {
 |-- node_modules
 |-- src
 |	|-- main.js
-|	|-- utils.js
+|	└── utils.js
 |-- index.html
 |-- package.json
 |-- package-lock.json
-|-- webpack.config.js
+└── webpack.config.js
 `````
 一切准备就绪, 我们可以直接在目录下面打开命令行, 执行 `webpack` 命令:
 `````bash
@@ -168,7 +168,7 @@ You can also set it to 'none' to disable any default behavior. Learn more: https
 `mode` 告知 `webpack `使用相应模式的内置优化, 有两个模式可以选择 `development` 和 `production`; 我们可以将 `mode` 写进配置文件里面:
 `````javascript
 module.exports = {
-    ...
+    //...
     mode:"production"
 }
 `````
@@ -269,7 +269,7 @@ npm install css-loader style-loader -D
 
 给 `loader` 传入属性除了 `queryString` 的方式外, 还可以通过 `Object` 传入, `rules`里面我们还可以改写成这样:
 `````javascript
-...
+//...
 rules:[
     {
         // 用正则去匹配要用该 loader 转换的文件 .css 结尾的
@@ -282,7 +282,7 @@ rules:[
         }]
     }
 ]
-...
+//...
 `````
 ##### file-loader && url-loader
 `css-loader` 和 `style-loader` 将 CSS 进行处理, 打包到了 `bundle.min.js` 中, 下面我们对 `main.css` 做一些修改, 我们想在网页中加入我们的 logo:
@@ -429,7 +429,7 @@ innerText('Hello Webpack');
 
 ***webpack.config.js***
 `````javascript
-...
+//...
 rules:[
     {
         // 用正则去匹配要用该 loader 转换的文件 .css 结尾的
@@ -1001,12 +1001,12 @@ module.exports = {
 我们打包出来的代码是被 `webpack` 编译混淆过了的, 如果要在浏览器里面调试代码的话, 我们就需要开启调试模式;
 ***webpack.config.js***
 `````javascript
-...
+//...
 module:{
-    ...
+    //...
 },
 plugins:[
-    ...
+    //...
 ],
 devtool:'eval-source-map'
 `````
@@ -1071,7 +1071,7 @@ export default {
 ***webpack.config.js***
 `````javascript
 module.exports = {
-    ...
+    //...
     devServer:{
         host:'localhost',   //默认启动服务的host 是 localhost, 这里也可以替换成本机ip
         port:9000,      //服务启动的端口号
@@ -1105,6 +1105,1066 @@ module.exports = {
 `````
 > 更多 `devServer` 配置详见 [开发中 server(devServer)](https://webpack.docschina.org/configuration/dev-server/);
 
+#### 核心概念
+> `webpack` 功能强大, 且配置项多, 但是我们只需要理解了其中的几个核心概念, 就能得心应手的使用它
+
+- `Entry`: 入口, `webpack` 执行构建的第一步将从 `entry` 开始, 可理解为输入;
+- `Module`: 模块, 在 `webpack` 里面, 一切都是模块, 一个模块对应的一个文件, `webpack` 会从配置的 `Entry` 开始递归找出所有依赖的模块;
+- `Chunk`: 代码块, 一个 `Chunk` 由多个模块组合而成, 用于代码合并与分割;
+- `Loader`: 模块转换工具, 用于把模块原内容按照需求转换成新内容;
+- `Plugin`: 扩展插件, 在 `webpack` 构建流程中的特定时机注入扩展逻辑来改变构建结果或做你想要的事情;
+- `Output`:输出, 在 `webpack` 经过一系列处理并得出最终想要的代码后输出结果;
+
+`webpack` 启动后会从 `Entry` 里配置的 `Module `开始递归解析 `Entry` 依赖的所有 `Module`. 每找到一个 `Module`, 就会根据配置的 `Loader` 去找出对应的转换规则, 对 `Module` 进行转换后, 再解析出当前 `Module `依赖的 `Module`. 这些模块会以 Entry 为单位进行分组，一个 Entry 和其所有依赖的 Module 被分到一个组也就是一个 Chunk。最后 Webpack 会把所有 Chunk 转换成文件输出。 在整个流程中 webpack 会在恰当的时机执行 Plugin 里定义的逻辑
+
+### Webpack 配置
+配置 `webpack` 有两种方式:
+- 1. 通过 `javascript` 文件描述配置, 例如使用 `webpack.config.js`;
+- 2. 执行 `webpack` 可执行命令时通过参数传入, 例如 `webpack --mode=production`
+
+这两种方式可以互相搭配使用, 例如执行 `webpack` 命令时, 通过命令 `webpack --config webpack-dev.config.js` 指定配置文件, 再去 `webpack-dev.config.js` 文件里描述部分配置;
+
+按照配置索所影响的功能来划分, 可分为:
+- `Entry` 配置模块的入口;
+- `Output` 配置如何输出最终想要的代码;
+- `Module` 配置处理模块的规则;
+- `Resolve` 配置寻找模块的规则;
+- `Plugins` 配置扩展插件;
+- `DevServer` 配置 DevServer;
+- `其它配置项` 其它零散的配置项;
+- `整体配置结构` 整体地描述各配置项的结构;
+- `多种配置类型` 配置文件不止可以返回一个 Object，还有其他返回形式
+
+#### Entry
+`entry` 是配置模块的入口, 可抽象成输入, `webpack` 执行构建的第一步将从入口开始搜寻及递归解析出所有入口依赖的模块;
+
+`entry` 类型可以是一下三种组合的任意一种:
+
+|   类型      |       例子                                                   |               含义                 |
+|   :----:   |  :-----------------------------:                             |              :----:                |
+|   String   |  './src/main.js'                                             |   入口模块的文件路径，可以是相对路径  |
+|   Array    |  ['./src/mian.js','./app/entry.js']                          |   入口模块的文件路径，可以是相对路径  |
+|   Object   |  {a:'./src/main.js', b:['./app/entry.js','./app/entry2.js']} | 配置多个入口，每个入口生成一个 Chunk  |
+
+> 如果是 `array `类型, 则搭配 `output.library` 配置项使用时, 只有数组里的最后一个入口文件的模块会被导出;
+
+`webpack` 会为每个生成的 `Chunk` 取一个名称, `Chunk `的名称和 `Entry` 的配置有关:
+- 如果 `entry` 是一个 `string` 或 `array`, 就只会生成一个 `Chunk`, 这时 `Chunk` 的名称是 `main`;
+- 如果 `entry` 是一个 `object`, 就可能会出现多个 `Chunk`, 这时 `Chunk` 的名称是 `object` 键值对里键的名称;
+
+##### 动态配置 Entry
+假如项目里有多个页面需要为每个页面的入口配置一个 `Entry` , 但这些页面的数量可能会不断增长, 则这时 `Entry` 的配置会受到到其他因素的影响导致不能写成静态的值. 其解决方法是把 `Entry` 设置成一个函数去动态返回上面所说的配置:
+`````javascript
+entry: () => {
+    return new Promise((resolve)=>{
+        resolve({
+            a:'./pages/a',
+            b:'./pages/b',
+        });
+    });
+};
+`````
+#### Output
+`output` 配置如何输出最终想要的代码, `output` 是个 `object` , 里面包含一系列的配置项, 每一个配置都会影响最终输出的结果;
+
+##### filename
+`filename` 配置输出的最终文件的名称, `String` 类型, 如果只有一个输入文件, 则可以写成静态的：
+`````javascript
+module.exports = {
+    entry:'./src/main.js',
+    output:{
+        filename:'bundle.min.js'
+    }
+}
+`````
+但是有多个 `Chunk `要输出时, 就要借助模板和变量了; 前面有说到 `webpack` 会为每一个 `Chunk` 都取一个名称, 名称可以根据 `Chunk` 的名称来区分输出的文件名:
+`````javascript
+module.exports = {
+    entry:'./src/main.js',
+    output:{
+        filename:'[name].min.js'
+    }
+}
+`````
+代码里的 `[name]` 代表用内置的 `name` 变量去替换 `[name]`, 这时你可以把它看作一个字符串模块函数,  每个要输出的 `Chunk `都会通过这个函数去拼接出输出的文件名称; 那么这个时候的 `name` 就是上面入口处文件的 `main`了;
+
+内置变量除了 `name` 还有：
+
+<table>
+    <thead>
+        <tr>
+            <th>变量名</th>
+            <th>含义</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>id</td>
+            <td>Chunk 的唯一标识，从0开始</td>
+        </tr>
+        <tr>
+            <td>name</td>
+            <td>Chunk 的名称</td>
+        </tr>
+        <tr>
+            <td>hash</td>
+            <td>Chunk 的唯一标识的 Hash 值</td>
+        </tr>
+        <tr>
+            <td>chunkhash</td>
+            <td>Chunk 内容的 Hash 值</td>
+        </tr>
+    </tbody>
+</table>
+
+其中 `hash` 和 `chunkhash` 的长度是可以指定的, `[hash:8]` 代表的是取 8 位的 hash 值;
+
+> 注意 `ExtractTextWebpackPlugin` 插件是使用 `contenthash` 来代表哈希值而不是 `chunkhash`, 原因在于` ExtractTextWebpackPlugin` 提取出来的内容是代码内容本身而不是由一组模块组成的 `Chunk`
+
+##### chunkFilename
+`chunkFilename` 配置无入口的 `Chunk` 在输出时的文件名称;
+
+`chunkFilename` 和上面的 `filename` 非常类似, 但 `chunkFilename` 只用于指定在运行过程中生成的 `Chunk` 在输出时的文件名称.  常见的会在运行时生成` Chunk `场景有在使用 `CommonChunkPlugin`、使用 `import('path/to/module')` 动态加载等时;
+
+##### path
+`path` 配置输出文件存放在本地的目录, 必须是 `String` 类型的绝对路径, 通常我们会使用 `NodeJs` 的 `path` 模块去获取绝对路径;
+
+`````javascript
+const path = require('path');
+module.exports = {
+    entry:'./src/main.js',
+    output:{
+        filename:'[name].min.js',
+        path:path.resolve(__dirname,'dist')
+    }
+}
+`````
+##### publicPath
+在复杂的项目里可能会有一些构建出的资源需要异步加载, 加载这些异步资源需要对应的 `URL` 地址;
+
+`publicPath` 配置发布到线上资源的 URL 前缀, 为`string` 类型. 默认值是空字符串 '', 即使用相对路径; 例如:
+
+`````javascript
+const path = require('path');
+module.exports = {
+    entry:'./src/main.js',
+    output:{
+        filename:'[name].[hash:8].js',
+        publicPath:'https://cdn.example.com/assets/'
+    }
+}
+`````
+这个时候发布到线上的 `html` 模板里面的文件引入就是:
+`````html
+<script src='https://cdn.example.com/assets/main.12345678.js'></script>
+`````
+以上只是 `output` 里常用的配置项, 详细配置查看 [webpack 官网](https://webpack.docschina.org/concepts/output/)
+
+#### Module
+`Module` 配置如何处理模块;
+
+##### loader
+`module`主要用来配置不同文件的加载器. 谈到加载就离不开`loader`;
+
+通过使用不同的`Loader`, `webpack`可以要把不同的文件都转成JS文件, 比如`CSS、ES6/7、JSX`等;
+
+配置一项 `rules` 时大致通过以下方式:
+- 1. 条件匹配：
+    - `test` : 匹配处理文件的扩展名的正则表达式;
+    - `use`  : `loader`名称, 就是你要使用模块的名称;
+    - `include/exclude` : 手动指定必须处理的文件夹或屏蔽不需要处理的文件夹;
+    - `query`: 为`loaders`提供额外的设置选项;
+- 2. 应用规则: 对选中后的文件通过 `use` 配置项来应用 `Loader`, 可以只应用一个 `Loader` 或者按照从后往前的顺序应用一组 `Loader`, 同时还可以分别给 `Loader` 传入参数
+- 3. 重置顺序: 一组 `Loader` 的执行顺序默认是从右到左执行, 通过 `enforce` 选项可以让其中一个 `Loader` 的执行顺序放到最前或者最后
+
+`````javascript
+module.exports = {
+    //...
+    module:{
+        rules:[
+            {
+                //以 .js 结尾命名的文件
+                test:/\.js$/,
+                //presets[]=es2015 表示给 loader 传入参数去将 ES6 文件编译为 ES5
+                use:['babel-loader?presets[]=es2015'],
+                // 只处理 src 目录里面的 .js 文件
+                includes: path.resolve(__dirname,'src')
+            },{
+                //以 .scss 结尾命名的文件
+                test:/\.scss$/,
+                //使用一组 Loader 去处理 SCSS 文件  处理顺序为从后到前，即先交给 sass-loader 处理，再把结果交给 css-loader 最后再给 style-loader
+                use:['style-loader', 'css-loader', 'sass-loader'],
+                //排除 node_modules 文件夹下的文件
+                excludes: path.resolve(__dirname,'node_modules')
+            },{
+                // 对非文本文件采用 file-loader 加载
+                test: /\.(gif|png|jpe?g|eot|woff|ttf|svg|pdf)$/,
+                use: ['file-loader']
+            }
+        ]
+    }
+}
+`````
+在 `loader` 有需要传入很多个参数的时候, 我们还可以用 `Object` 来描述, 比如上面的例子可以稍微改造一下：
+`````javascript
+module.exports = {
+    //...
+    module:{
+        rules:[
+            {
+                //以 .js 结尾命名的文件
+                test:/\.js$/,
+                //presets[]=es2015 表示给 loader 传入参数去将 ES6 文件编译为 ES5
+                use:{
+                    loader:'bable-loader',
+                    options:{
+                        presets:['es2015']
+                    }
+                },
+                // 只处理 src 目录里面的 .js 文件
+                includes: path.resolve(__dirname,'src')
+            }
+            //...
+        ]
+    }
+}
+`````
+上面的例子中, `test`,`includes`,`excludes` 这三个字段的配置只传入了一个字符串或者是正则, 其实他们都还支持数组类型：
+`````javascript
+module.exports = {
+    //...
+    module:{
+        rules:[
+            {
+                test:[
+                    /\.jsx$/,
+                    /\.tsx$/
+                ],
+                includes: [
+                    path.resolve(__dirname,'src'),
+                    path.resolve(__dirname,'test')
+                ],
+                excludes:[
+                    path.resolve(__dirname,'node_modules'),
+                    path.resolve(__dirname,'bower_modules')
+                ]
+            }
+            //...
+        ]
+    }
+}
+`````
+##### noParse
+`noParse` 配置项可以让 `Webpack` 忽略对部分没采用模块化的文件的递归解析和处理, 这样做的好处是能提高构建性能.  原因是一些库例如 `jQuery` 、`ChartJS` 它们庞大又没有采用模块化标准, 让 `Webpack` 去解析这些文件耗时又没有意义;
+
+`noParse` 是可选配置项, 类型需要是 `RegExp`、`[RegExp]`、`function` 其中一个;
+
+例如想要忽略掉 `jQuery` 、`ChartJS`, 可以使用如下代码:
+`````javascript
+module.exports = {
+    module:{
+        noParse:/jquery|echatjs/
+    }
+}
+`````
+`````javascript
+module.exports = {
+    module:{
+        // webpack 3.x 之后支持使用函数
+        noParse:(content) => /jquery|echatjs/.test(content)
+    }
+}
+`````
+> 注意被忽略掉的文件里不应该包含 `import `、 `require` 、 `define` 等模块化语句, 不然会导致构建出的代码中包含无法在浏览器环境下执行的模块化语句;
+##### parser
+因为 `webpack` 是以模块化的 `JavaScript` 文件为入口, 所以内置了对模块化 `JavaScript` 的解析功能, 支持 `AMD`、`CommonJS`、`SystemJS`、`ES6`;
+
+`parser` 属性可以更细粒度的配置哪些模块语法要解析哪些不解析, 和 `noParse` 配置项的区别在于 `parse`r 可以精确到语法层面, 而 `noParse` 只能控制哪些文件不被解析; 
+
+`parser` 使用如下:
+`````javascript
+module.exports = {
+    module:{
+        rulse:[
+            {
+                test:/\.js$/,
+                use:['babel-loader'],
+                parser:{
+                    amd:false,              // 禁用 AMD
+                    commonjs:false,         // 禁用 CommonJS
+                    system:false,           // 禁用 SystemJS
+                    harmony:false,          // 禁用 ES2015 Harmony import/export
+                    requireInclude:false,   // 禁用 require.include
+                    requireEnsure:false,    // 禁用 require.ensure
+                    requireContext:false,   // 禁用 require.context
+                    browserify:false,       // 禁用特殊处理的 browserify bundle
+                    requireJs:false,        // 禁用 requirejs
+                    node: false             // 禁用 __dirname, __filename, module, require.extensions, require.main 等
+                }
+            }
+        ]
+    }
+}
+`````
+#### Resolve
+`webpack `在启动后会从配置的入口模块出发找出所有依赖的模块, `resolve `配置 `webpack` 如何寻找模块所对应的文件.  `webpack` 内置 `JavaScript` 模块化语法解析功能, 默认会采用模块化标准里约定好的规则去寻找, 但你也可以根据自己的需要修改默认的规则;
+
+##### alias
+配置别名, 可以加快 `webpack` 查找模块的速度;
+`````javascript
+module.exports = {
+    //...
+    resolve:{
+        alias:{
+            '@components': path.resolve(__dirname,'./src/components'),
+            'static': path.resolve(__dirname,'./src/assets')
+        }
+    }
+}
+`````
+当我们在代码里面通过 `import Button from '@components/Button'` 导入时, 实际上被 `alias` 等价替换成了 `import Button from './src/components/Button'`;
+
+##### extensions
+在导入语句没带文件后缀时, `webpack` 会自动带上后缀后去尝试访问文件是否存在. `extensions `用于配置在尝试过程中用到的后缀列表; 默认是:
+`````javascript
+module.exports = {
+    //...
+    resolve:{
+        //...
+        extensions:['.wasm','.mjs','js','json']
+    }
+}
+`````
+也就是说当遇到 `import util from './src/utils'` 这样的导入语句的时候, `webpack` 会先去寻找 `utils.wasm` 文件, 如果该文件不存在就去寻找 `utils.mjs` 文件; 知道找到了正确的停止, 如果都没有找到就会报错; 
+
+假如我们想让 `webpack` 优先使用目录下面的 `Typescript`文件, 可以这样配置:
+`````javascript
+module.exports = {
+    //...
+    resolve:{
+        //...
+        extensions:['.ts','js','json']
+    }
+}
+`````
+> 需要注意的是, 此配置会修改默认数组, 这就意味着 `webpack` 不会使用默认扩展名来解析模块, 想要正确的解析, 必须是在默认模块下面去添加新的后缀名;
+
+##### modules
+`modules` 配置 `webpack` 去哪些目录下寻找第三方模块, 默认是只会去 `node_modules` 目录下寻找;
+
+有时候项目里面会有一些模块会大量被一些其他模块依赖和导入, 由于每一个模块的目录地址分布不同, 针对不同的文件都要去计算模块文件的相对地址, 这个路径有时候会是很长的; 例如：
+`````javascript
+import Button from '../../../src/compoents/Button';
+`````
+这个时候, 我们可以使用 `modules` 配置优化项, 假如那些被大量导入的模块都在 `components` 目录下面, 我们可以把 `modules` 配置成:
+`````javascript 
+module.exports = {
+    //...
+    resolve:{
+        //...
+        modules:[path.resolve(__dirname,'./src/components'),'node_modules']
+    }
+}
+`````
+后面我们就可以在项目里面直接使用:
+`````javascript
+import Button from 'Button';
+`````
+
+##### descriptionFiles
+`descriptionFiles` 配置描述第三方模块的文件名称, 也就是 `package.json` 文件; 默认如下:
+`````javascript
+module.exports = {
+    //...
+    resolve:{
+        //...
+        descriptionFiles: ['package.json']
+    }
+}
+`````
+
+##### enforceExtension
+`enforceExtension`如果配置为 `true`, 那么所有的导入语句都必须要带上文件后缀名; 相当于是对 `extensions` 禁用;
+
+#### Plugins
+`plugins` 选项用于以各种方式自定义 `webpack` 构建过程, `webpack` 附带了各种内置插件, 可以通过 `webpack.[plugin-name]` 访问这些插件; 详见 [webpack 内置插件文档](https://webpack.docschina.org/plugins)
+
+##### 配置 plugin
+`plugin` 的配置非常简单, `plugins`配置项接收一个数组, 数组里面每一项都是一个要使用的 `plugin` 的实例, `plugin` 需要的参数通过构造函数传入;
+
+使用多个插件的时候就直接在数组里面接着第一个往下面写:
+`````javascript
+const path = require('path');
+const ExtractTextPlugin = require('extract-text-webpack-plugin');
+const HtmlWebpackPlugin = require('html-webpack-plugin');
+module.exports = {
+    //...
+    plugins:[
+        new webpack.ProgressPlugin(),
+        new ExtractTextPlugin({
+            // 提取出来的 .css 文件名
+            filename:'css/[name].[hash].css'
+        }),
+        new HtmlWebpackPlugin({
+            //生成 html 后的文件名
+            filename:'index.html',
+            //选择 index.html 作为模板, 如果不传入 template 选项, webpack 会自动生成一个空的 html 文件
+            template:'index.html',
+            // 传入的参数为 true 或者是 body 时, 所有打包出来的 js 资源都会被插入到 body 的下面
+            inject:true,
+            // 生成 html 的 title
+            title:'webpack 最佳实践',
+        })
+    ]
+    //...
+}
+`````
+使用 `plugin` 的难点在于掌握 `plugin` 本身提供的配置项, 而不是如何在 `webpack` 中接入 `plugin`;
+
+几乎所有 `webpack` 无法直接实现的功能都能在社区找到开源的 `plugin` 去解决;
+
+#### DevServer
+要配置 `DevServer` , 除了在配置文件里通过 `devServer` 传入参数外, 还可以通过命令行参数传入;
+`````javascript
+module.exports = {
+    //...
+    devServer:{
+        host:'localhost',   //默认启动服务的host 是 localhost, 这里也可以替换成本机ip
+        port:9000,      //服务启动的端口号
+        //contentBase: path.join(__dirname,'dist')  //默认情况下，将使用当前工作目录作为提供内容的目录 不建议修改
+        headers:{           //在所有的响应中添加头
+            'Token':'xx'
+        },
+        https:{             //开启 https 服务
+            key:fs.readFileSync('xx.key'),
+            cert:fs.readFileSync('xx.cert'),
+            ca: fs.readFileSync('xx.pem')
+        },
+        compress:true,       //是否开启 gzip 
+        allowedHosts:[       //配置域名白名单, 只有白名单内的域名才能正常返回
+            "http://www.xxx.com"
+        ],
+        historyApiFallback:{        //用于方便的开发使用 HTML5 History 模式开发的单页应用
+            // 使用正则匹配命中路由
+            rewrites:[
+                {
+                    from: /(.*)$/,
+                    to:'/index.html'
+                }
+            ]
+        },
+        proxy:{                     //配置代理   请求到 /api/user 现在会被代理转发到 http://localhost:9000/api/users
+            '/api':'http://localhost:9000'
+        }
+    }
+}
+`````
+> 更多 `devServer` 配置详见 [开发中 server(devServer)](https://webpack.docschina.org/configuration/dev-server/);
+
+#### 其它配置项
+`webpack` 除了前面介绍到的配置外, 还提供了一些零散的配置项, 下面是一些常用的部分;
+
+##### Target
+`JavaScript` 的应用场景越来越多, 从浏览器到 `Node.js`, 这些运行在不同环境的 `JavaScript` 代码存在一些差异. `target` 配置项可以让 `webpack` 构建出针对不同运行环境的代码;
+<table>
+    <thead>
+        <tr>
+            <th>target值</th>
+            <th>描述</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><code>web</code></td>
+            <td>针对浏览器 <strong>(默认)</strong>，所有代码都集中在一个文件里</td>
+        </tr>
+        <tr>
+            <td><code>node</code></td>
+            <td>针对 Node.js，使用 <code>require</code> 语句加载 Chunk 代码</td>
+        </tr>
+        <tr>
+            <td><code>async-node</code></td>
+            <td>针对 Node.js，异步加载 Chunk 代码</td>
+        </tr>
+        <tr>
+            <td><code>webworker</code></td>
+            <td>针对 WebWorker</td>
+        </tr>
+        <tr>
+            <td><code>electron-main</code></td>
+            <td>针对 Electron 主线程</td>
+        </tr>
+        <tr>
+            <td><code>electron-renderer</code></td>
+            <td>针对 Electron 渲染线程</td>
+        </tr>
+    </tbody>
+</table>
+
+`````javascript
+module.exports = {
+    //...
+    target:'node'
+}
+`````
+例如当你设置 `target:'node'` 时, 源代码中导入 `Node.js` 原生模块的语句 `require('fs')` 将会被保留, `fs` 模块的内容不会打包进 `Chunk` 里;
+
+##### Devtool
+`devtool` 配置 `Webpack` 如何生成 `Source Map`, 默认值是 `false` 即不生成 `Source Map`, 想为构建出的代码生成 `Source Map` 以方便调试, 可以这样配置:
+`````javascript
+module.exports = {
+    //...
+    devtool: 'source-map'
+}
+`````
+> `devtool` 更多选项配置详见 [webpack devtool 中文文档](https://webpack.docschina.org/configuration/devtool/)
+
+##### Watch && WatchOptions
+`webpack` 可以监听文件变化, 当它们修改后会重新编译; 当 `watch` 无法正常运行的时候你可以做的一些调整;
+`````javascript
+module.exports = {
+    //...
+    watch: true
+}
+`````
+启用 `Watch` 模式, 这意味着在初始构建之后, `webpack` 将继续监听任何已解析文件的更改; 在使用 `DevServer` 时, 监听模式是自动开启的;
+
+除此之外, `webpack` 还提供了 `watchOptions` 配置项去更灵活的控制监听模式:
+`````javascript
+module.exports = {
+    //...
+    watch: true,
+    // 监听模式运行的参数 在监听模式的时候才有效果
+    watchOptions:{
+        // 不监听的文件或文件夹，支持正则匹配  默认为空
+        ignored:/node_modules/,
+        // 监听到变化发生后会等300ms再去执行动作，防止文件更新太快导致重新编译频率太高  默认 300 毫秒
+        aggregateTimeout:300,
+        // 判断文件是否发生变化是通过不停的去询问系统指定文件有没有变化实现的   默认每隔1000毫秒询问一次
+        poll:1000
+    }
+}
+`````
+##### Externals
+`Externals` 用来告诉 `webpack` 要构建的代码中使用了哪些不用被打包的模块, 也就是说这些模版是外部环境提供的, `webpack` 在打包时可以忽略它们;
+
+有些 `JavaScript` 运行环境可能内置了一些全局变量或者模块, 例如在我们的 `HTML HEAD` 标签里通过以下代码:
+`````html
+<script src="static/scripts/jquery.js"></script>
+`````
+引入 `jQuery` 后, 全局变量 `jQuery` 就会被注入到网页的 `JavaScript` 运行环境里;
+
+如果我们在后面的开发中, 某个开发人员不小心又使用 `npm` 安装了一个 `jQuery`, 并在代码里面有引用过它 `import $ from 'jquery'`;
+
+构建后你会发现输出的 `Chunk` 里包含的 `jQuery` 库的内容, 这导致 `jQuery` 库出现了2次, 浪费加载流量; `externals` 就是解决这个问题的;
+
+`externals` 可以告诉 Webpack JavaScript 运行环境已经内置了那些全局变量, 针对这些全局变量不用打包进代码中而是直接使用全局变量:
+`````javascript
+module.export = {
+    externals: {
+        // 把导入语句里的 jquery 替换成运行环境里的全局变量 jQuery
+        jquery: 'jQuery'
+    }
+}
+`````
+
+##### ResolveLoader
+`ResolveLoader` 用来告诉 `Webpack` 如何去寻找 `Loader`, 因为在使用 `Loader` 时是通过其包名称去引用的;
+
+`Webpack` 需要根据配置的 `Loader` 包名去找到 `Loader `的实际代码, 以调用 `Loader` 去处理源文件;
+
+`ResolveLoader` 的默认配置如下：
+`````javascript
+module.export = {
+    resolveLoader:{
+        // 去哪个目录下寻找 Loader
+        modules: ['node_modules'],
+        // 入口文件的后缀
+        extensions: ['.js', '.json'],
+        // 指明入口文件位置的字段
+        mainFields: ['loader', 'main']
+    }
+}
+`````
+#### 多种配置类型
+
+>除了通过导出一个 `Object` 来描述 `Webpack` 所需的配置外, 还有其它更灵活的方式, 以简化不同场景的配置;
+
+##### 导出 Function
+在大多数时候你需要从同一份源代码中构建出多份代码, 例如一份用于开发时, 一份用于发布到线上; 如果采用导出一个 `Object` 来描述 `Webpack` 所需的配置的方法, 需要写两个文件. 一个用于开发环境, 一个用于线上环境. 再在启动时通过 `webpack --config webpack.config.js` 指定使用哪个配置文件;
+
+采用导出一个 `Function` 的方式, 能通过 `JavaScript` 灵活的控制配置, 做到只用写一个配置文件就能完成以上要求:
+`````javascript
+const UglifyJsPlugin = require('uglify-js-plugin');
+
+module.exports = function(env,argv){
+    const plugin = [];
+    if(env.production){
+        // 如果传入的环境是 production
+        plugin.push(
+            // 压缩输出的 js 代码
+            new UglifyJsPlugin();
+        )
+    }
+    return {
+        mode: env.production ? 'production' : 'development',
+        devtool: env.production ? 'source-maps' : 'eval',
+        plugin
+    }
+}
+`````
+在运行 `webpack` 的时候会传入两个参数:
+- `env` : 当前运行 `webpack` 的环境变量, 设置它时需要在启动 `webpack` 时候带上参数, 例如: `webpack --env.production`;
+- `argv`: 代表在 `webpack` 启动时候通过命令行传入的所有参数; 例如: `--config --env --devtool` 等;
+
+就以上配置文件而言, 在开发时执行命令 `webpack` 构建出方便调试的代码, 在需要构建出发布到线上的代码时执行 `webpack --env.production` 构建出压缩的代码;
+
+##### 导出 Promise
+在有些情况下你不能以同步的方式返回一个描述配置的 `Object`, `Webpack` 还支持导出一个返回 `Promise` 的函数, 使用如下:
+`````javascript
+module.exports = function(env = {}, argv) {
+    return new Promise((resolve, reject) => {
+        setTimeout(() => {
+            resolve({
+                // ...
+            })
+        }, 5000)
+    })
+}
+`````
+##### 导出多份配置
+> 注: 导出多份配置是从 `webpack 3.1.0` 以后的版本才开始支持的;
+
+除了只导出一份配置外, `Webpack` 还支持导出一个数组, 数组中可以包含每份配置, 并且每份配置都会执行一遍构建;
+`````javascript
+module.exports = [
+    {
+        entry:'./app.js',
+        name:'amd',
+        mode:'production',
+        output:{
+            filename:'dist-amd.js',
+            path:path.resolve(__dirname,'dist'),
+            libraryTarget: 'amd'
+        }
+    },{
+        entry:'./app.js',
+        name:'commonjs',
+        mode:'production',
+        output:{
+            filename:'dist-commonjs.js',
+            path:path.resolve(__dirname,'dist'),
+            libraryTarget: 'commonjs'
+        }
+    }
+]
+`````
+以上配置会导致 `Webpack` 针对这几个配置执行几次不同的构建; 这特别适合于用 `Webpack` 构建一个要上传到 `Npm` 仓库的库, 因为库中可能需要包含多种模块化格式的代码;
+
+### Webpack 配置实战
+`webpack` 从 `4.x` 版本之后, 可以不再使用任何配置文件来打包项目, 这也是为什么 `webpack` 能够成为前端工程化使用最多的工具, 虽然不需要任何配置, 但它任然有着高度可配置性, 可以很好的满足我们的需求;
+
+下面我们通过一些实战项目来重新认识一下 `webpack`; 
+
+> 接下来的所有的实战目录结构如下
+
+`````txt
+|-- node_modules
+|-- src
+|-- └── assets          //assets文件夹存放静态资源
+|-- index.html
+|-- package.json
+|-- package-lock.json
+└── webpack.config.js
+`````
+并且是都有初始化和安装了 `webpack` 的;
+
+`````bash
+npm init 
+
+npm install webpack webpack-cli -D
+`````
+***index.html***
+`````html
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<title></title>
+</head>
+<body>
+	<div id="app"></div>
+</body>
+</html>
+`````
+#### Typescript 配置
+> `TypeScript` 是 `JavaScript` 的一个超集, 主要提供了类型检查系统和对 `ES6` 语法的支持, 但不支持新的 API;
+
+目前没有任何环境支持运行原生的 `TypeScript` 代码, 必须通过构建把它转换成 `JavaScript` 代码后才能运行;
+
+下面我们在 `src` 文件夹下面分别新建 `main.ts`, `show.ts` 内容如下:
+
+***src/main.ts***
+`````typescript
+import show from './show.ts';
+`````
+
+***src/show.ts***
+`````typescript
+export function show(content:string){
+    document.getElementById('app').innerText = 'Hello' + content;
+}
+`````
+`typescript` 官方提供了能把 `typescript` 编译成 ES5 的编译器, 我们需要在当前项目里面新建一个用于编译选项的 `tsconfig.json` 的文件, 编译器默认会读取这个文件, 内容如下:
+`````json
+{
+    "compilerOptions": {
+        "module": "commonjs",       // 编译出的代码采用的模块规范
+        "target": "es5",            // 编译出的代码采用 ES 的哪个版本
+        "sourceMap": true           // 输出 Source Map 方便调试
+    },
+    "exclude": [                    // 不编译这些目录里的文件
+        "node_modules"
+    ]
+}
+`````
+通过 `npm install typescript -g` 将编译器安装到全局之后, 就可以通过 `tsc main.ts` 命令编译出 `main.js`了;
+
+##### 减少代码冗余
+`TypeScript` 编译器会有`Babel` 一样的问题：在把 `ES6` 语法转换成 `ES5` 语法时需要注入辅助函数, 为了不让同样的辅助函数重复的出现在多个文件中, 可以开启 `TypeScript` 编译器的 `importHelpers` 选项, 修改 `tsconfig.json` 文件如下：
+`````json
+{
+    "compilerOptions": {
+        "module": "commonjs",       // 编译出的代码采用的模块规范
+        "target": "es5",            // 编译出的代码采用 ES 的哪个版本
+        "sourceMap": true,          // 输出 Source Map 方便调试
+        "importHelpers": true
+    },
+    "exclude": [                    // 不编译这些目录里的文件
+        "node_modules"
+    ]
+}
+`````
+##### 集成 webpack
+要让 `webpack` 支持 `TypeScript`, 需要解决以下2个问题:
+- 1. 通过 `Loader` 把 `TypeScript` 转换成 `JavaScript`;
+- 2. `webpack` 在寻找模块对应的文件时需要尝试 `ts` 后缀;
+
+这里推荐使用速度更快的 `awesome-typescript-loader`; `webpack` 查找 `.ts` 后缀的我们可以修改 `resolve` 的 `extensions ` 配置项;
+`````bash
+npm install typescript awesome-typescript-loader -D
+`````
+***webpack.config.js***
+`````javascript
+const path = require('path');
+module.exports = {
+	entry:'./src/main',
+	mode:'production',
+	output:{
+		filename:'bundle.min.js',
+		path:path.resolve(__dirname,'dist')
+	},
+	resolve:{
+        // 先查找 .ts 结尾的文件名;
+		extensions:['.ts','.js','.json']
+	},
+	module:{
+		rules:[
+			{
+				test:/\.ts$/,
+				loader:'awesome-typescript-loader'
+			}
+		]
+	},
+	devtool:'source-map'
+}
+`````
+修改完配置之后执行 `webpack` 命令, 就可以看到 `dist` 目录下面生成了 `bundle.min.js` 和 `bundle.min.js.map` 我们在 `index.html` 引入一下编译后的文件就可以看到正常输出了;
+
+#### SCSS 配置
+> `SCSS` 是一种 `CSS` 预处理器, 它与 `Less` 有写相同点, 可以让我们用编程的方式去编写 `css`;
+
+`SCSS` 又叫 `SASS`, 区别在于 `SASS` 语法类似 `Ruby`, 而 `SCSS` 语法类似 `CSS`; 
+
+采用 `SCSS` 去写 `CSS` 的好处在于可以方便地管理代码, 抽离公共的部分, 通过逻辑写出更灵活的代码; `Vue` 项目里面动态换肤的功能也是使用 `SCSS` 实现的;
+
+`node-sass` 核心模块是由 C++ 编写, 再用 `Node.js` 封装了一层, 以供给其它 `Node.js` 调用.  `node-sass` 还支持通过命令行调用, 先安装它到全局:
+`````bash
+npm install node-sass -g
+`````
+再执行编译命令:
+`````bash
+# 把 main.scss 源文件编译成 main.css
+node-sass main.scss main.css
+`````
+在 `webpack` 里面使用 `scss` 需要安装依赖：
+`````bash
+npm install node-sass sass-loader css-loader style-loader -D
+`````
+***stc/main.scss***
+`````css
+$blue: #2856ff;
+#app{
+	height: 30px;
+	background: $blue;
+}
+`````
+***src/mian.js***
+`````javascript
+import './main.scss';
+`````
+***webpack.config.js***
+`````javascript
+const path = require('path');
+module.exports = {
+	entry:'./src/main',
+	mode:'production',
+	output:{
+		filename:'bundle.min.js',
+		path:path.resolve(__dirname,'dist')
+	},
+	module:{
+		rules:[
+			{
+				test:/\.scss$/,
+				// SCSS 文件的处理顺序为先 sass-loader 再 css-loader 再 style-loader
+				use:['style-loader','css-loader','sass-loader']
+			}
+		]
+	},
+	devtool:'source-map'
+}
+`````
+#### Vue 配置
+`Vue` 是个渐进式的 `MVVM` 框架, 相比于 `React`、`Angular` 它更灵活轻量; 虽然 `Vue` 的项目能用可直接运行在浏览器环境的代码编写, 但为了方便编码大多数项目都会采用 `Vue `官方的单文件组件的写法去编写项目;
+
+安装依赖:
+`````bash
+npm install node-sass sass-loader css-loader style-loader -D
+# Vue 是运行时需要的依赖, 所以这里是  -S 
+npm install vue -S
+npm install vue-loader vue-style-loader vue-template-compiler -D
+
+`````
+下面, 我们可以看一下 `webpack` 配置 `Vue` 运行环境; 在 `src` 下面新建一个 `App.vue` 文件:
+
+***App.vue***
+`````html
+<template>
+	<div>
+		<h1>{{message}}</h1>
+	</div>
+</template>
+
+<script>
+	export default{
+		data(){
+			return{
+				message:'Hello Vue'
+			}
+		}
+	}
+</script>
+<style scoped lang="scss">
+    /* 
+     *  这里的 @ 是在 webpack reslove.alias 里面配置的快捷地址
+     */
+	@import '~@/assets/main.scss';
+	h1{
+		color: red;
+		text-align: center;
+	}
+</style>
+`````
+***main.js***
+`````javascript
+import Vue from 'vue';
+import App from './App';
+
+new Vue({
+	el:'#app',
+	render: h => h(App)
+})
+`````
+***main.scss***
+`````css
+$blue: #2856ff;
+#app{
+	height: 30px;
+	background: $blue;
+}
+`````
+***webpack.config.js***
+`````javascript
+const path = require('path');
+const { VueLoaderPlugin } = require('vue-loader');
+const webpack = require('webpack');
+
+module.exports = {
+	entry:'./src/main.js',
+	mode:'production',
+	output:{
+		filename:'bundle.min.js',
+		path:path.resolve(__dirname,'dist')
+	},
+	resolve:{
+		alias:{
+            // 配置别名, 在引入组件的时候可以直接使用 @ 代替 src
+			'@':path.resolve(__dirname,'src')
+        },
+        // import 组件的时候不写后缀名, 默认先查找 .vue 结尾的文件
+		extensions:['.vue','.js','.json']
+	},
+	module:{
+		rules:[
+			{
+				test:/\.vue$/,
+				use:['vue-loader']
+			},{
+				test:/\.scss$/,
+				// SCSS 文件的处理顺序为先 sass-loader 再 css-loader 再 style-loader
+				use:['style-loader','css-loader','sass-loader']
+			}
+		]
+	},
+	plugins:[
+        // webpack 4.x 之后使用 vue-loader 需要 new VueLoaderPlugin()
+        new VueLoaderPlugin(),
+        // webpack 内置的进度条
+		new webpack.ProgressPlugin(),
+	],
+	devtool:'source-map'
+}
+`````
+这样, 一个简单的 `vue` 开发环境就搭建好了; 有兴趣可以研究一下 `vue-cli` 官方搭建的脚手架工具;
+
+##### Typescript in Vue
+从 `Vue 2.5.0+` 版本开始, 提供了对 `TypeScript` 的良好支持, 使用 `TypeScript` 编写 `Vue` 是一个很好的选择, 因为 `TypeScript` 能检查出一些潜在的错误;
+
+尝试修改一下 `webpack` 配置, 使其支持 `Typescript` 开发, 安装依赖:
+`````bash
+npm install ts-loader typescript -D
+`````
+首先, 在根目录下面新建 `tsconfig.json` 文件:
+
+***tsconfig.json***
+`````json
+{
+    "compilerOptions": {
+        // 构建出 ES5 版本的 JavaScript，与 Vue 的浏览器支持保持一致
+        "target": "es5",
+        // 开启严格模式，这可以对 `this` 上的数据属性进行更严格的推断
+        "strict": true,
+        // TypeScript 编译器输出的 JavaScript 采用 es2015 模块化, 使 Tree Shaking 生效
+        "module": "es2015",
+        "moduleResolution": "node",
+        "sourceMap": true 
+    }
+}
+`````
+修改 `App.vue` 内容如下:
+
+***src/App.vue***
+`````html
+<template>
+	<div>
+		<h1>{{message}}</h1>
+	</div>
+</template>
+
+<!--  lang = ts 是为了指明代码是 Typescript 语法  -->
+<script lang="ts">
+	import Vue from 'vue';
+	// 通过 Vue.extend 启用 TypeScript 类型推断
+	export default Vue.extend({
+		data(){
+			return{
+				message:'Hello Typescript In Vue'
+			}
+		}
+	})
+</script>
+<style scoped lang="scss">
+	@import '~@/assets/main.scss';
+	h1{
+		color: red;
+		text-align: center;
+	}
+</style>
+`````
+之前的 `main.js` 这里可以直接修改为 `main.ts`:
+
+***src/mian.ts***
+`````typescript
+import Vue from 'vue';
+import App from './App.vue';
+
+new Vue({
+	el:'#app',
+	render: h => h(App)
+})
+`````
+由于 `typescript` 不认识 `.vue` 结尾的文件, 为了能让其支持 `import App from './App.vue'` 这样的语法, 我们还需要在 `src` 下面新建一个 `vue-shims.d.ts` 文件去定义 `.vue` 类型:
+
+***src/vue-shims.d.ts***
+`````typescript
+// 告诉 TypeScript 编译器 .vue 文件其实是一个 Vue  
+declare module "*.vue" {
+    import Vue from "vue";
+    export default Vue;
+}
+`````
+`webpack` 需要修改一些配置:
+
+***webpack.config.js***
+`````javascript
+const path = require('path');
+const { VueLoaderPlugin } = require('vue-loader');
+const webpack = require('webpack');
+
+module.exports = {
+	entry:'./src/main.ts',
+	mode:'production',
+	output:{
+		filename:'bundle.min.js',
+		path:path.resolve(__dirname,'dist')
+	},
+	resolve:{
+		alias:{
+			'@':path.resolve(__dirname,'src')
+		},
+		// 增加对 TypeScript 的 .ts 和 .vue 文件的支持
+		extensions:['.ts','.vue','.js','.json']
+	},
+	module:{
+		rules:[
+			{
+				test:/\.ts$/,
+				loader:'ts-loader',
+				exclude:/node_modules/,
+				options:{
+					// 让 tsc 把 vue 文件当成一个 TypeScript 模块去处理，以解决 moudle not found 的问题，tsc 本身不会处理 .vue 结尾的文件
+					appendTsSuffixTo:[/\.vue$/]
+				}
+			},{
+				test:/\.vue$/,
+				use:['vue-loader']
+			},{
+				test:/\.scss$/,
+				// SCSS 文件的处理顺序为先 sass-loader 再 css-loader 再 style-loader
+				use:['style-loader','css-loader','sass-loader']
+			}
+		]
+	},
+	plugins:[
+		new VueLoaderPlugin(),
+		new webpack.ProgressPlugin(),
+	],
+	devtool:'source-map'
+}
+`````
+至此, 一个简单的 `vue` 的 `Typescript` 单页开发环境就搭建好了, 有兴趣的可以看一下 `Vue` 官方提供的脚手架 `vue-cli` 工具搭建的流程;
 
 
 
