@@ -186,7 +186,7 @@ webpack --mode=production
 ##### css-loader && style-loader
 上面, 我们用 `webpack` 构建了一个 `CommonJS`规范的模块化项目, 下面我们将使用 `css-loader` 来处理 `css` 文件; 在`src` 目录下面新建一个文件夹 `assets` 里面新建一个 `main.css` 文件:
 
-***./css/main.css***
+***.src/assets/main.css***
 `````css
 #app{
     color:red;
@@ -196,7 +196,7 @@ webpack --mode=production
 `````
 `Webpack` 把一切文件看作模块, `CSS `文件也不例外, 要引入` main.css` 需要像引入 `JavaScript `文件那样, 修改入口文件 `main.js `如下：
 
-***./js/main.js***
+***./src/main.js***
 `````javascript
 // 通过 CommonJS 规范导入css文件
 require('./assets/main.css');
@@ -287,7 +287,7 @@ rules:[
 ##### file-loader && url-loader
 `css-loader` 和 `style-loader` 将 CSS 进行处理, 打包到了 `bundle.min.js` 中, 下面我们对 `main.css` 做一些修改, 我们想在网页中加入我们的 logo:
 
-***main.css***
+***./src/assets/main.css***
 `````css
 #app{
     color:red;
@@ -404,7 +404,7 @@ module.exports = {
 
 在 `assets` 文件夹下面新建一个 `style.less` 文件, 内容如下：
 
-***style.less***
+***./src/assets/style.less***
 `````less
 @bg-color:blue;
 #app{
@@ -413,7 +413,7 @@ module.exports = {
 `````
 然后在 `main.js` 里面, 我们引入一下 `style.less` 文件:
 
-***main.js***
+***./src/main.js***
 `````javascript
 // 通过 CommonJS 规范导入css文件
 require('./assets/main.css');
@@ -537,7 +537,7 @@ module.exports = {
 `````
 配置完成之后, 我们可以尝试在 `main.css` 里面添加一些 CSS3 的属性：
 
-***main.css***
+***./src/assets/main.css***
 `````css
 #app{
     color:red;
@@ -616,7 +616,7 @@ npm install babel-loader @babel/core @babel/preset-env -D
 `````
 下面, 我们将 `main.js` 和 `utils.js` 的 `CommonJS` 规范编写的语法, 修改为 `ES`的语法：
 
-***main.js***
+***./src/main.js***
 `````javascript
 // 通过 ES 规范导入css文件
 import './assets/main.css';
@@ -627,7 +627,7 @@ import utils from './utils';
 
 utils.innerText('Hello Webpack');
 `````
-***utils.js***
+***./src/utils.js***
 `````javascript
 // 通过 ES 规范导出模块
 export default {
@@ -1049,7 +1049,7 @@ npm install webpack-dev-server -D
 ##### 实时预览
 按照上面的步骤, 我们可以尝试着修改一下 `utils.js` 文件里面的内容:
 
-***utils.js***
+***./src/utils.js***
 `````javascript
 // 通过 ES 规范导出模块
 export default {
@@ -1805,12 +1805,12 @@ npm install webpack webpack-cli -D
 
 下面我们在 `src` 文件夹下面分别新建 `main.ts`, `show.ts` 内容如下:
 
-***src/main.ts***
+***./src/main.ts***
 `````typescript
 import show from './show.ts';
 `````
 
-***src/show.ts***
+***./src/show.ts***
 `````typescript
 export function show(content:string){
     document.getElementById('app').innerText = 'Hello' + content;
@@ -1902,7 +1902,7 @@ node-sass main.scss main.css
 `````bash
 npm install node-sass sass-loader css-loader style-loader -D
 `````
-***stc/main.scss***
+***./src/main.scss***
 `````css
 $blue: #2856ff;
 #app{
@@ -1910,7 +1910,7 @@ $blue: #2856ff;
 	background: $blue;
 }
 `````
-***src/mian.js***
+***./src/mian.js***
 `````javascript
 import './main.scss';
 `````
@@ -1949,7 +1949,7 @@ npm install vue-loader vue-style-loader vue-template-compiler -D
 `````
 下面, 我们可以看一下 `webpack` 配置 `Vue` 运行环境; 在 `src` 下面新建一个 `App.vue` 文件:
 
-***App.vue***
+***./src/App.vue***
 `````html
 <template>
 	<div>
@@ -1977,7 +1977,7 @@ npm install vue-loader vue-style-loader vue-template-compiler -D
 	}
 </style>
 `````
-***main.js***
+***./src/main.js***
 `````javascript
 import Vue from 'vue';
 import App from './App';
@@ -1987,7 +1987,7 @@ new Vue({
 	render: h => h(App)
 })
 `````
-***main.scss***
+***./src/main.scss***
 `````css
 $blue: #2856ff;
 #app{
@@ -2065,7 +2065,7 @@ npm install ts-loader typescript -D
 `````
 修改 `App.vue` 内容如下:
 
-***src/App.vue***
+***./src/App.vue***
 `````html
 <template>
 	<div>
@@ -2095,7 +2095,7 @@ npm install ts-loader typescript -D
 `````
 之前的 `main.js` 这里可以直接修改为 `main.ts`:
 
-***src/mian.ts***
+***./src/mian.ts***
 `````typescript
 import Vue from 'vue';
 import App from './App.vue';
@@ -2107,7 +2107,7 @@ new Vue({
 `````
 由于 `typescript` 不认识 `.vue` 结尾的文件, 为了能让其支持 `import App from './App.vue'` 这样的语法, 我们还需要在 `src` 下面新建一个 `vue-shims.d.ts` 文件去定义 `.vue` 类型:
 
-***src/vue-shims.d.ts***
+***./src/vue-shims.d.ts***
 `````typescript
 // 告诉 TypeScript 编译器 .vue 文件其实是一个 Vue  
 declare module "*.vue" {
@@ -2166,5 +2166,149 @@ module.exports = {
 `````
 至此, 一个简单的 `vue` 的 `Typescript` 单页开发环境就搭建好了, 有兴趣的可以看一下 `Vue` 官方提供的脚手架 `vue-cli` 工具搭建的流程;
 
+#### 生成 HTML
+在 `Vue` 的环境搭建中, 只用了一个简单的 `App.vue` 来作为演示, 这个里面只输出了一个 `bundle.min.js` 文件, 所以就手写了一个 `index.html` 文件去引入这个 `bundle.min.js`; 
+
+在实际项目中, 一个页面常常有很多资源要加载, 并且都是需要放在不同的位置的 , `head`, `body` 或者是其他地方;
+
+并且打包后的文件, 如果开启了 `hash` 命名的话, 这个时候我们还手动去引入文件, 这会使工作变得复杂、易错, 比较难以维护;
+
+这里我们是直接使用上面已经搭建好的 `vue` 的开发环境来做, 首先我们在原来的基础上新增一些插件 :
+`````bash
+npm install web-webpack-plugin  extract-text-webpack-plugin@next uglifyjs-webpack-plugin -D
+`````
+***webpack.config.js***
+`````javascript
+const path = require('path');
+const { VueLoaderPlugin } = require('vue-loader');
+const webpack = require('webpack');
+const ExtractTextPlugin = require('extract-text-webpack-plugin');
+const { WebPlugin } = require('web-webpack-plugin');
+const UglifyJsPlugin = require('uglifyjs-webpack-plugin');
 
 
+module.exports = {
+	entry:'./src/main.ts',
+	mode:'production',
+	output:{
+		filename:'[name].[hash].js',
+		path:path.resolve(__dirname,'dist')
+	},
+	resolve:{
+		alias:{
+			'@':path.resolve(__dirname,'src')
+		},
+		// 增加对 TypeScript 的 .ts 和 .vue 文件的支持
+		extensions:['.ts','.vue','.js','.json']
+	},
+	module:{
+		rules:[
+			{
+				test:/\.ts$/,
+				loader:'ts-loader',
+				exclude:/node_modules/,
+				options:{
+					// 让 tsc 把 vue 文件当成一个 TypeScript 模块去处理，以解决 moudle not found 的问题，tsc 本身不会处理 .vue 结尾的文件
+					appendTsSuffixTo:[/\.vue$/]
+				}
+			},{
+				test:/\.vue$/,
+				use:['vue-loader']
+			},{
+				test:/\.scss$/,
+				// SCSS 文件的处理顺序为先 sass-loader 再 css-loader 再 style-loader
+				use:ExtractTextPlugin.extract({
+					fallback:'style-loader',
+					use:['css-loader','sass-loader']
+				})
+			}
+		]
+	},
+	plugins:[
+		new VueLoaderPlugin(),
+		new webpack.ProgressPlugin(),
+		new WebPlugin({
+			// 模板选择为当前目录下的  index.html
+			template:'./index.html',
+			// 输出的文件名为  index.html
+			filename:'index.html'
+		}),
+		new ExtractTextPlugin({
+			// 给输出的 CSS 文件名称加上 Hash 值
+			filename:'[name].[hash].css'
+		}),
+		new webpack.DefinePlugin({
+			// 定义 NODE_ENV 环境变量为 production，以去除源码中只有开发时才需要的部分
+			'process.env':{
+				NODE_ENV:JSON.stringify('production')
+			}
+		})
+	],
+	// 压缩输出的 JavaScript 代码
+	optimization:{
+		minimizer:[
+			new UglifyJsPlugin()
+		]
+	},
+	devtool:'source-map'
+}
+`````
+***index.html***
+`````html
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<link rel="stylesheet" type="text/css" href="https://cdn.staticfile.org/twitter-bootstrap/4.1.3/css/bootstrap.min.css">
+    <!--注入 Chunk main 中的 main[hash].css CSS-->
+	<link rel="stylesheet" type="text/css" href="main?_inline">
+	<title></title>
+</head>
+<body>
+	<div id="app"></div>
+	<script src="https://cdn.staticfile.org/jquery/3.1.0/jquery.min.js" type="text/javascript"></script>
+	<script src="https://cdn.staticfile.org/twitter-bootstrap/4.1.3/js/bootstrap.min.js" type="text/javascript"></script>
+    <!--导入 Chunk main 中的  main[hash].js JS-->
+	<script src="main" type="text/javascript" charset="utf-8"></script>
+</body>
+</html>
+`````
+`index` 模板文件描述了哪些资源以什么方式引入到输出的 `html` 中, 以 `<link rel="stylesheet" type="text/css" href="main?_inline">` 为例, `href` 属性中的 `main?_inline` ,`?` 前面的部分表示 css 文件来自哪个 `Chunk` 中, 后面的 `_inline` 表示代码将被内嵌在这个标签的位置;
+
+同样, `<script src="main" type="text/javascript" charset="utf-8"></script>` 表示输出后的 `main.[hash].js` 会被输出到这里; 
+
+也就是说资源链接 `URL` 字符串里问号前面的部分表示资源内容来自哪里, 后面的 `querystring` 表示这些资源注入的方式;
+
+除了 `_inline` 表示内嵌外, 还支持以下属性:
+- `_dist`: 只有在生产环境下才引入该资源;
+- `_dev` : 只有在开发环境才引入改资源;
+
+这些属性之间可以搭配使用, 互不冲突. 例如 `app?_inline&_dist` 表示只在生产环境下才引入该资源, 并且需要内嵌到 HTML 里去;
+
+以上配置, 输出到 `dist` 目录下面的 `index.html` 内容如下:
+
+***./dist/index.html***
+`````html
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<link rel="stylesheet" type="text/css" href="https://cdn.staticfile.org/twitter-bootstrap/4.1.3/css/bootstrap.min.css">
+	<style rel="stylesheet" type="text/css">
+        #app[data-v-7ba5bd90]{height:30px;background:#2856ff}
+        h1[data-v-7ba5bd90]{color:red;text-align:center}
+        /*# sourceMappingURL=main.a7254fcf029f29653c66.css.map*/
+    </style>
+	<title></title>
+</head>
+<body>
+	<div id="app"></div>
+	<script src="https://cdn.staticfile.org/jquery/3.1.0/jquery.min.js" type="text/javascript"></script>
+	<script src="https://cdn.staticfile.org/twitter-bootstrap/4.1.3/js/bootstrap.min.js" type="text/javascript"></script>
+	<script src="main.a7254fcf029f29653c66.js" type="text/javascript" charset="utf-8"></script>
+</body>
+</html>
+`````
+> 插件更多其他的用法, 可以查看 [web-webpack-plugin](https://github.com/gwuhaolin/web-webpack-plugin);
