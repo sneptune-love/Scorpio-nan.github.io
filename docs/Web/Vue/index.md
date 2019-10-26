@@ -329,6 +329,228 @@ new Vue({
 由于我们有一个移动端的项目, 需要打包成APP, 并且需要使用到IOS和Android的一些原生的功能, 所以选用的UI库是 [`MUI`](http://dev.dcloud.net.cn/mui/ui/),配合 `Dcloud`提供的 H5+方法使用;
 但是 `MUI`里面提供的一些组件并不能满足我们的开发需求, 所以这时候就需要自己去开发一些组件了;
 
+#### 插槽
+插槽的概念很简单, 也就是一个 `slot` , 是组件的一块 `HTML` 模板, 这块模板显示不显示, 以及怎么样显示, 是由父组件决定的; 
+
+插槽模板是一个空的 `slot`, 它是一个空壳子, 因为它的显示与隐藏以及最后用什么样的 `html` 模板显示由父组件控制. 但是插槽显示的位置却由子组件自身决定, slot写在组件template的什么位置, 父组件传过来的模板将来就显示在什么位置;
+
+##### 单个插槽、默认插槽、匿名插槽
+单个插槽其实也叫默认插槽, 或者是与具名插槽相对, 我们也可以叫匿名插槽, 因为它不用设置 `name` 属性; 单个插槽可以放置在组件的任意位置, 但是就像它的名字一样, 一个组件中只能有一个该类插槽. 相对应的, 具名插槽就可以有很多个, 只要名字 (name属性) 不同就可以了;
+
+假定有一个公用组件有以下模板:
+
+***component***
+`````html
+<template>
+    <div class="child">
+        <h3>这里是子组件</h3>
+        <slot></slot>
+    </div>
+</template>
+`````
+
+***父组件模板***
+`````html
+<template>
+    <div>
+        <h3>这里是父组件</h3>
+        <Compon>
+			<p>这是一些初始内容</p>
+    		<p>这是更多的初始内容</p>
+		</Compon>
+    </div>
+</template>
+<script>
+	import Compon from './component';
+	export default{
+		components:{
+			Compon
+		}
+	}
+</script>
+`````
+
+最终渲染结果：
+`````html
+<div>
+	<h3>这里是父组件</h3>
+	<div class="child">
+        <h3>这里是子组件</h3>
+		<p>这是一些初始内容</p>
+		<p>这是更多的初始内容</p>
+	</div>
+</div>
+`````
+##### 具名插槽
+`<slot>` 元素可以用一个特殊的特性 `name` 来进一步配置如何分发内容. 多个插槽可以有不同的名字. 具名插槽将匹配内容片段中有对应 `slot` 特性的元素.
+
+仍然可以有一个匿名插槽, 它是默认插槽, 作为找不到匹配的内容片段的备用插槽, 如果没有默认插槽, 这些找不到匹配的内容片段将被抛弃;
+
+例如, 我们有一个 `layout` 的组件, 它的模板为:
+
+***layout.vue***
+`````html
+<div class="container">
+	<header>
+		<slot name="header"></slot>
+	</header>
+	<main>
+		<slot></slot>
+	</main>
+	<footer>
+		<slot name="footer"></slot>
+	</footer>
+</div>
+`````
+父组件模板为:
+`````html
+<app-layout>
+	<h1 slot="header">这里可能是一个页面标题</h1>
+
+	<p>主要内容的一个段落。</p>
+	<p>另一个主要段落。</p>
+
+	<p slot="footer">这里有一些联系信息</p>
+</app-layout>
+`````
+最终渲染结果:
+`````html
+<div class="container">
+	<header>
+		<h1>这里可能是一个页面标题</h1>
+	</header>
+	<main>
+		<p>主要内容的一个段落。</p>
+		<p>另一个主要段落。</p>
+	</main>
+	<footer>
+		<p>这里有一些联系信息</p>
+	</footer>
+ </div>
+`````
+开发组件的时候, 插槽允许我们向组件里面插入 `html` 代码块, 让公用组件只完成某个特定的功能;
+
+####  抽屉组件
+在原生 APP 上我们经常可以看到从底部弹出的功能菜单, 下面我们可以来开发一个 `vue` 版本的抽屉插件, 具体代码如下:
+
+***ActionSheet.vue***
+`````html
+<template>
+	<div id="actionsheet">
+		<transition name="fade">
+			<div class="action_mask" :show="show" v-show="show" @click="hideAction"></div>
+		</transition>
+		<transition name="bounce">
+			<div class="action" :show="show" v-show="show">
+				<!--  这里使用的就是具名插槽   -->
+				<slot name="action"></slot>
+			</div>
+		</transition>
+	</div>
+</template>
+<script>
+	export default {
+		props: {
+			show: Boolean,
+		},
+		methods: {
+			hideAction() {
+				this.$emit('hide')
+			},
+		}
+	}
+</script>
+<style lang="scss" scoped>
+	.action {
+		position: absolute;
+		left: 0;
+		bottom: 0;
+		width: 100%;
+		background-color: #efefef;
+		z-index: 100;
+		display: flex;
+		flex-direction: column;
+		.action_title {
+			text-align: center;
+			height: 0.6rem;
+			color: $importFontColor;
+			font-size: 0.24rem;
+			line-height: 0.6rem;
+		}
+	}
+	.action_mask {
+		position: absolute;
+		top: 0;
+		left: 0;
+		width: 100%;
+		height: 100%;
+		background-color: #000;
+		opacity: 0.5;
+		z-index: 20;
+	}
+	.bounce-enter-active {
+		animation: bounce-in .35s;
+	}
+	.bounce-leave-active {
+		animation: bounce-out .35s;
+	}
+	@keyframes bounce-in {
+		0% {
+			transform: translate3d(0,100%,0);
+		}
+		100% {
+			transform: translate3d(0px);
+		}
+	}
+	@keyframes bounce-out {
+		0% {
+			transform: translate3d(0px);
+		}
+		100% {
+			transform: translate3d(0,100%,0);
+		}
+	}
+	.fade-enter,
+	.fade-leave-active{
+	    opacity: 0;
+	}
+	.fade-leave-active,
+	.fade-enter-active {
+	    transition: opacity 300ms!important;
+	}
+</style>
+`````
+在其他的业务组件里面我们就可以直接引用了：
+
+`````html
+<template>
+	<!-- ... -->
+	<ActionSheet :show="isShow" @hide="onHide">
+		<!--  抽屉组件使用了具名插槽, 所以这里传进去的代码块也需要指定插槽位置  -->
+		<template slot="action">
+			<!-- ...  -->
+		</template>
+	</ActionSheet>
+</template>
+<script>
+	import ActionSheet from '@/components/ActionSheet';
+	export default {
+		components:{
+			ActionSheet
+		},
+		data(){
+			return{
+				isShow:false,
+			}
+		},
+		methods:{
+			onHide(){
+				this.isShow = false;
+			}
+		}
+	}
+</script>
+`````
 #### 键盘组件
 
 由于项目里面有输入银行卡, 用户密码等敏感操作; 使用系统的键盘会有一定的安全风险, 并且, 在项目里面, 输入框如果固定在底部的话, 用系统自带的输入键盘会有各种各样的问题(别问我为什么会有兼容问题,  - -! 已经被万恶的 UC 整哭好多次了);所以, 后面我们是把所有系统输入数字的地方全都替换成自定义组件的键盘;
