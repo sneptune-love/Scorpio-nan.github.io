@@ -33,5 +33,7 @@ web前端开发 , 主要接触到的语言就是 ` Javascript ` , 主要技术�
 
  - [PrismJS](https://github.com/PrismJS/prism/tree/gh-pages/components) 代码高亮插件
 
+ - [Zeal](https://zealdocs.org/) 一款离线翻阅文档的利器
+
 
 
