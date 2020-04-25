@@ -204,14 +204,216 @@ Unity 支持的音频文件格式有 mp3, ogg, wav, aif, mod, it, s3m, xm
 
 ### c# 语言基础
 
+#### 数据类型
+
+##### 整形(整数)
+
+1个字节: 有符号 sbyte (-128 ~ 127) , 无符号 byte (0 ~ 255);
+
+2个字节: 有符号 short (-32768 ~ 32767) , 无符号 ushort (0 ~ 65536);
+
+4个字节: 有符号 int , 无符号 uint;
+
+8个字节: 有符号 long , 无符号 ulong;
+
+##### 浮点数(小数)
+
+4个字节: 单精度浮点类型 float , 精度 7 位;
+
+8个字节: 双精度浮点类型 double , 精度 15-16 位;
+
+16个字节: 128 位数据类型 decimal , 精度 28-29 位, 适用于财务和货币计算;
+
+注意事项: 
+
+    1. 非整形变量赋值要加上后缀, 如果不加默认为 double;
+
+    2. 浮点数计算会出现舍入误差: bool number = 1.0f - 0.9f == 0.1f;
+
+    二进制无法精确表示 1/10 , 就像十进制无法精确表示 1/3 , 所以二进制表示十进制会有一些舍入误差, 对于精度要求较高的场合会导致代码的缺陷, 可以使用 decimal 代替;
+
+##### 非数值类型
+
+char 字符, 2 个字节, 存储单位字符, 使用单引号;
+
+string 字符串, 存储文本, 使用双引号;
+
+bool 真/假, 1 个字节, true / false;
+
+##### 调试
+排除错误的能力
+
+1. 在可能出错的代码行添加断点;
+2. 按 F5 键运行程序;
+3. 按 F11 逐语句执行;
+4. 按 shift + F5 结束调试;
+
+##### 占位符
+通常拼接字符串是用 ` + ` 来拼接, 但是这样的代码可读性不高, 并且容易出错; 可以使用 `string.Format()` api 来做字符串处理;
+````csharp
+string name = "张三";
+string age = "26";
+
+string person = string.Format("他的名字是:{0},他的年龄是:{1}", name, age);
+
+Console.WriteLine(person);
+Console.ReadLine();
+````
+
+##### 标准字符串格式化
+````csharp
+// 标准字符串格式化
+Console.WriteLine("金额:{0:c}元", 100);
+
+// 不足两位用 0 来填充
+Console.WriteLine("{0:d2}", 5);         // 输出为 05
+Console.WriteLine("{0:d2}", 15);        // 输出为 15
+
+// 以指定精度显示四舍五入
+Console.WriteLine("{0:f1}", 1.26);      // 输出为 1.3
+
+// 以百分数显示
+Console.WriteLine("{0:p}", 0.1);        // 输出为 10.00%
+````
+
+#### 数据类型转换
+
+##### string 类型转数值类型
+````csharp
+string strNumber = "18";
+int a = int.Parse(strNumber);           // 18
+float b = float.Parse(strNumber);       // 18
+
+Console.WriteLine(a);
+Console.WriteLine(b);
+````
 
 
+##### 任意类型转 string 类型
+````csharp
+int number1 = 25;
+float number2 = 18.2f;
 
+Console.WriteLine(number1.ToString());  // 25
+Console.WriteLine(number2.ToString());  // 18.2
+````
 
+###### 练习
+练习: 让用户在控制台中输入 4 位整数, 计算每一位数相加的总和
 
+例如: 1234  -->  1 + 2 + 3 + 4 = 10
 
+方案1:从字符串中获取每一个字符
 
+方案2:从整数中获取每一位
+````csharp
+#region  vs的功能, 用来折叠代码
+// 方案1
+Console.WriteLine("请输入需要计算的四位数字:");
+string input = Console.ReadLine();
 
+int num1 = int.Parse(input[0].ToString());
+int num2 = int.Parse(input[1].ToString());
+int num3 = int.Parse(input[2].ToString());
+int num4 = int.Parse(input[3].ToString());
 
+Console.WriteLine(num1 + num2 + num3 + num4);
+Console.ReadLine();
 
+#endregion
+````
+````csharp
+// 方案2
+Console.WriteLine("请输入需要计算的四位数字:");
+string input = Console.ReadLine();
+int num = int.Parse(input);
+
+int num1 = num / 1000;
+int num2 = (num / 100) % 10;
+int num3 = (num / 10) % 10;
+int num4 = num % 10;
+
+Console.WriteLine(num1 + num2 + num3 + num4);
+Console.ReadLine();
+````
+
+##### 隐式转换 、 显式转换
+````csharp
+// 隐式转换:自动转换 (由小范围到大范围)
+byte b = 100;
+int i = b;
+
+// 显式转换:强制转换 (由大范围到小范围)
+// 有可能发生精度丢失
+int c = 100;
+byte j = (byte)c;
+````
+byte 在内存中占用的位置是 8 位, 而 int 在内存中占用的是 4 个 8 位, byte 能表示的数值, 用 int 肯定能表示; int 能表示的数值, byte 不一定能表示;
+
+> 注: 由多种类型的数值相加, 结果自动向较大的类型提升
+
+#### 语句
+
+##### 选择语句
+`if... else`, `if... else if ... else`, `switch...case`; 这部分和 JavaScript 一致;
+
+##### 循环语句
+`while...`, `for...`; 和 JavaScript 一致;
+
+````csharp
+// 猜数字
+// 程序产生一个 1-100 之内的随机数;
+// 让玩家重复猜测, 直到猜对位置;
+// "大了", "小了", "恭喜, 猜对了, 总共猜了 ? 次";
+
+// 产生一个随机数工具
+Random random = new Random();
+//产生一个随机数 1-100 之间;
+int number = random.Next(1, 101);
+
+int count = 0;
+int inpNumber;
+do
+{
+    count++;
+    Console.WriteLine("请输入一个数字:");
+    inpNumber = int.Parse(Console.ReadLine());
+
+    if(inpNumber > number)
+    {
+        Console.WriteLine("大了~");
+    }
+    else if (inpNumber < number)
+    {
+        Console.WriteLine("小了~");
+    }
+    else
+    {
+        Console.WriteLine("猜对了~,您总共猜了{0}次", count);
+    }
+
+} while (number != inpNumber);
+````
+
+#### 方法
+各种语言都有方法的概念, 有的语言称其为函数或者是过程;
+
+方法就是对一系列语句的命名, 表示一个功能或者是行为, 如: Start, Update ...;
+
+使用方法可以提高代码的可重用性和可维护性;
+
+##### 语法
+定义方法: 
+````csharp
+//  [访问修饰符] [可选修饰符] [返回值类型] [方法名称](参数列表) { 
+        // 方法体;
+        //return 结果;
+//  }
+// 例如:
+private static void Fun(string arg1,float arg2)
+{
+    //...
+    return;
+}
+````
 
