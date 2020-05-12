@@ -31,7 +31,7 @@ console.log(str.match(reg));
 比如 `/a[123]b/`, 可以匹配下面三种字符串: `a1b` , `a2b` , `a3b`;
 
 `````javascript
-var reg = /a[123]b/g;
+var reg = /a[123]b/g;   
 var str = 'a0b a1b a2b a3b a4b';
 console.log(str.match(reg));
 // => ["a1b", "a2b", "a3b"];
