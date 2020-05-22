@@ -1118,9 +1118,393 @@ private int a = 100;
 [HideInInspector]
 public string name = "";
 
+//  只能设置 0 - 100 之间范围内的数值
+[Range(0, 100)]
+[SerializeField]
+private int number;
+````
+###### Awake 唤醒
+当物体载入时立即调用 1 次, 常用于在游戏开始时初始化, 可以判断当满足某种条件执行此脚本 this.enable = true;
 
+###### OnEnable 当可用
+每次当脚本对象启用时调用;
+
+###### Start 开始
+物体载入, 且脚本对象启用时被调用 1 次, 常用于数据或游戏逻辑初始化, 执行时机晚于 Awake;
+
+###### FiexdUpdate 固定更新
+脚本启用之后, 固定时间被调用, 适用于对游戏对象做物理操作, 例如移动等等; 
+
+设置更新频率: Edit --> Project Setting --> Time --> Fixed Timestep 值, 默认为 0.02s;
+
+###### OnCollisionXXX 碰撞
+当满足碰撞条件时调用;
+
+###### OnTriggerXXX 触发
+当满足触发条件时调用;
+
+###### Update 更新
+脚本启用后, 每次渲染场景时调用, 频率与设备性能及渲染量有关;
+
+###### LateUpdate 延迟更新
+在 Update 函数被调用后执行, 适用于跟随逻辑;
+
+###### OnMouseXXX 输入事件
+- OnMouseEnter  :  鼠标移入时触发
+- OnMouseOver   :  鼠标经过时触发
+- OnMouseExit   :  鼠标离开时触发
+- OnMouseDown   :  鼠标按下时触发
+- OnMouseUp     :  鼠标抬起时触发
+
+###### 场景渲染
+- OnBecameVisible   :  当 Mesh Renderer 在任何相机上可见时调用;
+- OnBecameInvisible :  当 Mesh Renderer 在任何相机上不可见时调用;
+
+###### 结束阶段
+- OnDisable             :  当对象变为不可用或附属游戏对象非激活状态时此函数被调用
+- OnDestroy             :  当脚本销毁或附属游戏对象销毁时调用
+- OnApplicationQuit     :  当应用程序退出时调用
+
+#### 调试
+将程序投入到实际运行中, 通过开发工具进行测试, 修正逻辑错误的过程;
+
+##### 使用 Unity 编辑器
+1. 控制台调试:
+````csharp
+Debug.Log(变量);
+
+print(变量);
+````
+2. 定义共有变量, 程序运行之后在监测面板看数据;
+
+##### 使用 vs (用来调试复杂业务逻辑)
+安装 vstu 工具, 在 Unity 项目面板中导入 tools;  [vs调试](https://www.bilibili.com/video/BV12s411g7gU?p=119)
+
+调试步骤:
+- 在可能出错的行添加断点;
+- 启动调试;
+- 在 Unity 中 Play 场景;
+
+##### GUI调试
+在 Unity 中添加 UI 界面, 用代码调试; GUI 会在Unity 界面中添加按钮图形;
+````csharp
+private void OnGUI()
+{
+    if (GUILayout.Button("按钮"))
+    {
+        // 调试代码
+        print("OK");
+    }
+}
+````
+
+#### Unity 常用 API
+Unity核心类:
+![Unity核心类](/res/Core-Class.png)
+
+
+##### Component
+
+所有附件到游戏对象的基类, 我们的代码将永远不会直接创建一个组件. 而是, 写脚本代码, 附加脚本到一个游戏对象上;
+
+````csharp
+//  exp  获取所有组件
+private void OnGUI()
+{
+    if (GUILayout.Button("按钮"))
+    {
+        print("OK");
+    }
+
+    if (GUILayout.Button("所有组件~"))
+    {
+        Component[] comps = this.GetComponents<Component>();
+
+        foreach (var item in comps)
+        {
+            Debug.Log(item.GetType());
+        }
+    }
+}
+
+//      GetComponent                    获取当前对象上面的某一个组件
+//      GetComponents                   获取当前对象上面的所有组件
+//      GetComponentInChildren          从自身开始向下查找所有的子组件
+//      GetComponentInParent            从自身开始向上查找所有的父组件
+
+
+//  exp 
+
+//  获取当前组件下面的 transform 子组件, 只查找一层;
+private void OnGUI()
+{
+    if (GUILayout.Button("所有子组件~"))
+    {
+        foreach (Transform item in this.transform)
+        {
+            Debug.Log(item.name);
+        }
+    }
+}
+
+//  查找物体
+this.transform.Find("");
+````
+
+##### gameObject
+游戏对象, Unity场景里面所有实体的基类.
+
+````csharp
+//  在场景中物体的激活状态(物体实际的激活状态)
+//  this.gameObject.activeInHierarchy
+
+//  物体自身的激活状态(物体在 Inspector 面板中的状态) 
+//  this.gameObject.activeSelf
+
+//  设置物体禁用或者启用
+//  this.gameObject.SetActive(true);
+
+//  创建物体
+GameObject lightGo = new GameObject();
+//  添加组件
+Light light = lightGo.AddComponent<Light>();
+
+//  在场景中根据名称查找物体
+GameObject.Find("");
+
+//  根据标签名查找物体(所有)
+GameObject[] allEnemy = GameObject.FindGameObjectsWithTag("allEnemy");
+//  根据标签名查找物体(单个)
+GameObject Player = GameObject.FindWithTag("Player");
+
+//  查找挂载 Enemy 脚本的所有对象
+Enemy[] Enemys = Object.FindObjectsOfType<Enemy>();
 
 ````
+
+***TransformHelper***
+````csharp
+public class TransformHelper 
+{
+    /// <summary>
+    /// 在层级未知的情况下查找物体
+    /// 变换组件类助手, 用于递归查找组件下面指定名称的子组件
+    /// </summary>
+    /// <param name="trs">父物体变换组件</param>
+    /// <param name="childName">需要查找的子对象名称</param>
+    /// <returns></returns>
+    public static Transform GetChild(Transform parentTF,string childName)
+    {
+        Transform childTF = parentTF.Find(childName);
+        if (childTF != null) return childTF;
+
+        int count = parentTF.childCount;
+        for(int i = 0; i < count; i++)
+        {
+            childTF = GetChild(parentTF.GetChild(i), childName);
+            if(childTF != null)
+            {
+                return childTF;
+            }
+        }
+        return null;
+    }
+}
+//  Transform tras = TransformHelper.GetChild(this.transform,"bult");
+````
+##### Time
+从 Unity 获取时间信息的接口;
+
+常用属性:
+- time : 从游戏开始到现在的时间;
+- timeScale : 时间缩放;
+- deltaTime : 以秒为单位, 表示每帧的经过时间;
+- unscaledDeltaTime : 不受缩放影响的每帧经过时间;
+
+````csharp
+private void Update()
+{
+    //  旋转速度 *  每帧消耗的时间 ; 可以保证旋转/缩放等动画速度不受机器性能的影响
+    this.transform.Rotate(0, 1 * Time.deltaTime, 0);
+}
+
+//  timeScale 作用缩放时间, 常用于暂停/继续游戏;
+private void OnGUI()
+{
+    if (GUILayout.Button("暂停游戏~"))
+    {
+        Time.timeScale = 0;
+    }
+    if (GUILayout.Button("继续游戏~"))
+    {
+        Time.timeScale = 1;
+    }
+}
+
+//  重复调用(被执行的方法名称, 第一次调用时间, 每次执行间隔);   类似 JavaScript 里面的 setInterval
+InvokeRepeating("Timer", 1, 1);
+
+//  取消重复调用
+CancelInvoke();
+````
+
+#### 预制体 Prefab
+一种资源类型, 可以多次在场景中进行实例;
+
+优点: 对预制体的修改, 可以同步到所有实例, 从而提高开发效率;
+
+如果单独修改实例的属性值, 则该值不再随预制体变化;
+
+Select键: 通过预制体实例选择对应的预制体;
+
+Revert键: 放弃实例属性值, 还原成预制体原有属性值;
+
+Apply键: 将某一个实例的修改应用到所有实例;
+
+预制体的制作: 从 Hierarchy 面板中将游戏物体拖拽到  Project 面板中就生成了一个预制体;
+
+
+#### 动画
+> [Animation 动画](https://www.bilibili.com/video/BV12s411g7gU?p=135);
+
+1. Animation View 
+
+通过动画视图可以直接创建和修改动画片段(Animation Clips); 显示动画视图, Window - Animation
+
+2. 创建动画片段
+
+为物体添加 Animation 组件; 在动画视图中创建片段;
+
+3. 时间轴
+
+![animate-timeline](/res/animate-timeline.png)
+
+可以单击时间线上的任何位置预览或者修改动画片段;
+
+数字显示为秒数和帧数; 例如: 1:30  表示 1 秒和 30帧;
+
+可以使用按钮跳转到下一个关键帧或者上一个关键帧, 也可以输入指定帧数直接跳到该帧;
+
+
+#### Input
+input 包装了输入功能的类, 可以读取输入管理器中设置的按键; 以及访问移动设备的多点触控或加速感应数据; 建议在 Update 中监测用户的输入行为;
+
+##### 鼠标输入
+当指定的鼠标按钮被按下时返回  true;
+````csharp
+// 0 鼠标左键   1 鼠标右键   2 鼠标中键
+bool result = Input.GetMouseButton(0);
+````
+
+在用户按下指定鼠标键的第一帧返回 true;
+````csharp
+// 0 鼠标左键   1 鼠标右键   2 鼠标中键
+bool result = Input.GetMouseButtonDown(0);
+````
+
+在用户释放指定鼠标按键的第一帧返回 true;
+````csharp
+// 0 鼠标左键   1 鼠标右键   2 鼠标中键
+bool result = Input.GetMouseButtonUp(0);
+````
+##### 键盘输入
+当通过名称指定的按键被用户按住时返回 true;
+````csharp
+bool res = Input.GetKey(KeyCode.A);
+````
+
+当用户按下指定名称按键时的那一帧返回 true;
+````csharp
+bool res = Input.GetKeyDown(KeyCode.A);
+````
+
+在用户释放给定名称按键的那一帧返回 true;
+````csharp
+bool res = Input.GetKeyUp(KeyCode.A);
+````
+
+````csharp
+//  exp  按下 C 键的同时按下 D 键
+void Update()
+{
+    if(Input.GetKey(KeyCode.C) && Input.GetKeyDown(KeyCode.D))
+    {
+        //  code;
+    }
+}
+````
+
+##### InputManager
+即输入管理器;  Edit -->  Project Setting  -->  Input
+
+使用脚本通过虚拟轴名称获取自定义键的输入;
+
+玩家可以在游戏启动时根据个人喜好对虚拟轴进行修改;
+
+获取虚拟轴:
+````csharp
+//  Input.GetButton("虚拟轴名称")
+bool result = Input.GetButton("Vertical");
+bool result = Input.GetButtonDown("Horizontal");
+bool result = Input.GetButtonUp("虚拟轴名称");
+```` 
+上面的方法, 只能判断用户所绑定的虚拟按键有没有被按下, 无法知道用户按下的是哪个按键; 如果想要知道用户具体按下的是哪个按键可以使用:
+
+````csharp
+//  Input.GetAxis("虚拟轴名称");
+float a = Input.GetAxis("Horizontal");
+float b = Input.GetAxisRaw("Vertical");
+
+//  Horizontal  默认绑定的是  a  ←       d  → 
+//  Vertical    默认绑定的是  w  ↑       s  ↓ 
+//  返回值  0 代表按下; 1 代表正向按钮; -1 代表负向按钮 
+````
+
+````csharp
+void Update()
+{
+    /*
+    * 需求: 做人物在3d 场景内的鼠标滚动操作;
+    * 类似第一视角类游戏的场景旋转
+    **/
+
+    //鼠标左右移动
+    float x = Input.GetAxis("Mouse X");
+    float y = Input.GetAxis("Mouse Y");
+
+
+    //Y 轴旋转;
+    this.transform.Rotate(-y, 0, 0);
+    //左右旋转需要延世界坐标旋转
+    this.transform.Rotate(0, x, 0, Space.World);
+}
+
+//  (./res/InputManager.cs)
+````
+
+
+#### 三维数学 Vector3
+
+````csharp
+//  Mathf.Lerp(起点, 终点, 比例) (./res/InputDemo.cs);
+float num = Mathf.Lerp(20, 60, 0.1f);
+
+//  Mathf.Abs(小数) 取小数的绝对值
+int num = Mathf.Abs(0.154624f);
+````
+
+##### 向量
+定义: 一个数字列表, 表示各个维度上的有向位移; 一个有大小有方向的物理量; 大小就是方向的模长, 方向描述了空间中向量的指向; 可以表示物体的位置和方向;
+
+向量的大小(模):  
+
+
+
+
+
+
+
+
 
 
 

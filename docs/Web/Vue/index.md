@@ -794,6 +794,9 @@ export default{
 
 ### 插件开发
 
+#### 自定义指令
+> [常用自定义指令](https://zhuanlan.zhihu.com/p/108308393)
+
 #### Vue.use() API
  
 我们在做 ` Vue ` 开发的时候, 经常会接触到 `Vue.use()` 方法, 那么, 关于 `Vue.use()` 我们都知道什么呢? [Vue 插件](https://cn.vuejs.org/v2/guide/plugins.html);
