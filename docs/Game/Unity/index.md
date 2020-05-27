@@ -1496,17 +1496,217 @@ int num = Mathf.Abs(0.154624f);
 ##### 向量
 定义: 一个数字列表, 表示各个维度上的有向位移; 一个有大小有方向的物理量; 大小就是方向的模长, 方向描述了空间中向量的指向; 可以表示物体的位置和方向;
 
-向量的大小(模):  
+向量的大小(模):  向量的长度标准化( Normalizing ): 保持方向不变, 将向量的长度变为 1;
+
+标量(scalar)：只有大小没有方向的量. 例如物体移动中的平均速率、路程;
+
+![Vector](/res/vector.png)
+
+如果我们定义一个 vector3(2,5,2),  这意味这什么呢 ? 在Unity中, 所有的向量都是从世界坐标零点开始. 因此这个向量表示从 vector.zero 发出的一条线, 到(2, 5, 2 )这个地方停止. 由于这条直线都是从vector.zero发出, 因此我们可以把它看成是一个三维世界中的点.    [Katex 数学公式在线编辑器](http://www.wiris.com/editor/demo/en/developers)
+
+$x^2+y^2+z^2\;=\;m^2$
+
+$Magnitude\;=\;\sqrt{x^2\;+\;y^2\;+\;z^2}$
+
+$Magnitude\;=\;\sqrt{12^2\;+\;7^2\;+\;5^2}$
+
+$Magnitude\;=\;\sqrt{144\;+49\;+\;25}$
+
+$Magnitude\;=\;\sqrt{218}$
+
+$Magnitude\;=\;14.76$
+
+##### 向量运算
+等于各分量相加减;
+
+公式: $\lbrack x1,y1,z1\rbrack\;+\;\lbrack x2,y2,z2\rbrack\;=\;\lbrack x1+x2,y1+y2,z1+z2\rbrack$;
+
+几何意义: 向量 a 与向量 b 相减, 结果理解为以 b 的终点为起始点, 以 a 的终点为终点的向量, 方向由 b 指向 a;
+
+应用: 计算两点之间的距离和相对方向;
+
+![Vector3](/res/vector.webp)
+
+````csharp
+//  exp 求两点之间的距离;
+Vector3 pos = this.transform.position;
+
+// 求两点之间的间距(向量的模长)    三种方法;
+float m01 = Mathf.Sqrt(Mathf.Pow(pos.x, 2) + Mathf.Pow(pos.y, 2) + Mathf.Pow(pos.z, 2));
+float m02 = pos.magnitude;
+float m03 = Vector3.Distance(Vector3.zero, pos);
+
+Debug.LogFormat("{0}-- {1}-- {2}", m01, m02, m03);
+Debug.DrawLine(Vector3.zero, pos);
+````
+
+````csharp
+//  exp 向量的方向
+
+Vector3 pos = this.transform.position;
+
+// 获取向量的方向    归一化   也叫标准化   计算向量的单位
+Vector3 n01 = pos / pos.magnitude;
+Vector3 n02 = pos.normalized;
+
+Debug.LogFormat("{0}-- {1}-- {2}", n01, n02);
+Debug.DrawLine(Vector3.zero, pos);
+
+````
+##### 向量与标量的乘除
+乘法: 该向量的各分量与标量相乘 $k\lbrack x,y,z\rbrack\;=\;\lbrack kx,ky,kz\rbrack$;
+
+除法: 该向量的各分量与标量相除 $\lbrack x,y,z\rbrack/k\;=\;\lbrack x/k,y/k,z/k\rbrack$;
+
+几何意义: 缩放向量长度;
+
+##### 向量点乘
+点乘又称 "点积" 或 "内积";
+
+公式: 各分量乘积之和  $\lbrack\mathrm x1,\mathrm y1,\mathrm z1\rbrack\;\ast\;\lbrack\mathrm x2,\mathrm y2,\mathrm z2\rbrack\;=\;\mathrm x1\;\ast\;\mathrm x2\;+\;\mathrm y1\;\ast\;\mathrm y2\;+\;\mathrm z1\;\ast\;\mathrm z2$;
+
+几何意义: a * b  = |a| * |b| cos<a,b>;  两个向量的单位向量相乘后再乘以二者夹角的余弦值;
+
+API: float dot = Vector3.Dot(va,vb);
+
+如果两个向量都是标准化向量, 那么 `a·b` 等于向量 b 在向量 a 方向上的投影的长度(或者说向量a在向量b方向上的投影), 两个向量的前后次序并不重要;
+
+> 点乘结果与角度关系: 对于标准化过的向量, 方向完全相同, 点乘结果为 1; 方向完全相反, 点乘结果为 -1; 互相垂直为 0;
+
+![Vector3-corss](/res/vector-corss.webp)
+
+````csharp
+//  exp  已知两个向量, 求向量之间的夹角;   这里一定要 normalized 一下, 不然计算出来的夹角数不准确;
+float dot = Vector3.Dot(t1.position.normalized, t2.position.normalized);
+float angle = Mathf.Acos(dot) * Mathf.Rad2Deg;
+````
+##### 向量叉乘
+叉乘又称 "叉积" 或 "外积";
+
+公式: $\lbrack\mathrm x1,\mathrm y1,\mathrm z1\rbrack\;\ast\;\lbrack\mathrm x2,\mathrm y2,\mathrm z2\rbrack\;=\;\lbrack\mathrm y1\;\ast\;\mathrm z2\;-\;\mathrm z1\;\ast\;\mathrm y2,\;\mathrm z1\;\ast\;\mathrm x2\;-\;\mathrm x1\;\ast\;\mathrm z2,\;\mathrm x1\;\ast\;\mathrm y2\;-\;\mathrm y1\;-\;\mathrm x2\rbrack$
+
+![Vector3-cross](/res/vector-cross03.webp)
+
+几何意义: 结果为两个向量所组成的垂直向量, 模长为两向量模长乘积再乘夹角的正弦;
+
+![Vector3-cross](/res/vector-cross02.webp)
+
+应用: 只适用于三维空间, 计算两个向量, 返回一个新的向量. 新向量的方向和前两个向量垂直;
+
+![Vector3-cross](/res/vector-cross.webp)
+
+````csharp
+//  exp 叉乘所得向量的模长与角度的关系 ：  0-90 度角;
+Vector3 cross = Vector3.Cross(t1.position.normalized, t2.position.normalized);
+float angle = Mathf.Asin(cross.magnitude) * Mathf.Rad2Deg;
+````
+
+##### 角度和弧度
+角度与弧度的换算:
+
+$\mathrm\pi\;=\;180^0$;  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  $1\mathrm{弧度}\;=\;180^0\;/\;\mathrm\pi$;  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   $1\mathrm{角度}\;=\;\;\mathrm\pi\;/\;180^0$
+
+角度  -->  弧度 ： 弧度 = 角度数 * PI / 180;
+
+API:  弧度 = 角度数 * Mathf.Deg2Rad;
+
+弧度  -->  角度 :  角度 = 弧度数 * 180 / PI;
+
+API:  角度 = 弧度数 * Mathf.Rad2Deg;
+
+在日常生活中角度制应用比较广泛; 在三角函数中弧度制可以简化计算;
+
+````csharp
+// 当角度为 60 度时, 计算弧度, 下面两个结果都是一样;
+float d = 60;
+float r = d * Mathf.PI / 180;
+float r = d * Mathf.Deg2Rad;
 
 
+// 当弧度为 10 时,计算角度, 下面两个结果都是一样;
+float r = 10;
+float d = r * 180 / Mathf.PI;
+float d = r * Mathf.Rad2Deg;
+````
+##### 三角函数
+![三角函数](/res/agenleFunc.png)
 
 
+##### 欧拉角
+使用三个角度来保存方位, X 与 Z 沿自身坐标系旋转, Y 沿世界坐标系旋转;
+
+API : Vector3 eulerAngle = this.transform.eulerAngles;
+
+优点:  仅使用三个数字表达方位, 占用空间小; 沿坐标轴旋转的单位为角度, 符合人的思考方式; 任意三个数字都是合法的, 不存在不合法的欧拉角;
+
+###### 方位表达方式不唯一
+对于一个方位, 存在多个欧拉角描述, 因此无法判断多个欧拉角代表的角位移是否相同;
+
+例如:
+- 角度  0,5,0   与角度  0,365,0;
+- 角度  0,-5,0  与角度  0,355,0;
+- 角度  250,0,0 与角度  290,180,180;
+
+为了保证任意方位都有独一无二的表示, Unity 引擎限制了角度范围, 即沿 x 轴旋转角度在  -90 到 90 之间, 沿 y 轴和 z 轴旋转限制在  0 - 360 之间;
+
+###### 万向节死锁
+物体沿 x 轴旋转 ± 90 度, 自身坐标系 z 轴与世界坐标系 y 轴将重合, 此时再沿 y 和 z 轴旋转时, 将失去一个自由度;
+
+在万向节死锁的情况下, 规定沿 y 轴完成绕竖直轴的全部旋转, 即此时 z 轴旋转为 0;
 
 
+##### 四元数
+Quaternion 在 3D 图形学中代表旋转, 由一个三维向量 (x/y/z) 和一个标量组成; 
 
+旋转轴为 V , 角度为 $\theta$ , 如果使用四元数表示, 则四个分量为:
 
+$x\;=\;\sin\left(\theta\;/\;2\right)\;\ast\;V_x$&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;$y\;=\;\sin\left(\theta\;/\;2\right)\;\ast\;V_y$
 
+$z\;=\;\sin\left(\theta\;/\;2\right)\;\ast\;V_z$&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;$w\;=\;\cos\left(\theta\;/\;2\right)$
 
+X,Y,Z,W 的取值范围是 -1 到 1;
+
+API: Quaternion qt = this.transform.rotation;
+
+````csharp
+//四元数  设置物体的旋转角度;
+Quaternion qt = new Quaternion();
+//旋转轴       up 是沿世界坐标系的 y 轴
+Vector3 axis = Vector3.up;
+//旋转弧度
+float rad = 60 * Mathf.Deg2Rad;
+
+qt.x = Mathf.Sin(rad / 2) * axis.x;
+qt.y = Mathf.Sin(rad / 2) * axis.y;
+qt.z = Mathf.Sin(rad / 2) * axis.z;
+qt.w = Mathf.Cos(rad / 2);
+
+this.transform.rotation = qt;
+
+//上面是根据公式推导出的值, 我们还可以使用 Unity 引擎提供的方法直接设置四元数;
+//欧拉角 --> 四元数;
+this.transform.rotation = Quaternion.Euler(0, 60, 0);
+````
+两个四元数相乘可以组合旋转效果, 相当于是叠加;
+
+````csharp
+//  exp
+Quaternion qt1 = Quaternion.Euler(0, 30, 0) * Quaternion.Euler(0, 20, 0);
+Quaternion qt2 = Quaternion.Euler(0, 50, 0);
+
+//qt1 == qt2   true;
+````
+````csharp
+//  exp 计算物体右前方30度, 10米远坐标;
+Vector3 vect;
+
+//  0 0 10 向量根据当前物体的旋转而旋转
+vect = this.transform.rotation * new Vector3(0, 0, 10);
+//  vect 向量沿 y 轴旋转30度
+vect = Quaternion.Euler(0, 30, 0) * vect;
+//  vect 向量移动到当前物体位置
+vect = this.transform.position + vect;
+````
 
 
 
