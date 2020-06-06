@@ -1831,8 +1831,18 @@ private string GetLocalPath(string path)
 
 ### FairyGui
 [FairyGui 官方网站](https://www.fairygui.com/);
+[FairyGui SDK](https://github.com/fairygui/FairyGUI-unity/releases);
 
 #### FairyGui 与 Unity 结合
+新建一个 Unity 工程, 将下载好的 FairyGUI SDK (FairyGUI-u5.5-3_5_0.unitypackage) 拖拽到工程里面, 官网上下载的版本里面有包含很多例子的, 如果不需要我们可以在对话框中取消勾选;
+
+将 FairyGui 包添加到 Unity 场景上有两种方式:
++ Hierarchy 面板右键选择 FairyGUI 选项, 创建一个 UI Panel; 在属性面板里面添加包名;
++ 代码的方式创建添加 UI;
+  + 新建脚本;
+  + 新建一个空游戏物体, 将脚本挂载到空物体上;
+
+> 注: `UIPackage.AddPackage` 默认的加载的文件夹为 `Resouces`, FairyGui 导出包的时候可以直接导出到这个文件夹下面;
 
 ````csharp
 using UnityEngine;
@@ -1844,30 +1854,40 @@ public class FairyGuiButtonTest : MonoBehaviour
     private GComponent Pannle;
     private GComponent Button;
 
-    // Start is called before the first frame update
-    void Start()
+    private void Awake()
     {
+        // 设置应用的 fps 值;
+        Application.targetFrameRate = 60;
         // 设置屏幕分辨率
-        GRoot.inst.SetContentScaleFactor(800, 600);
+        GRoot.inst.SetContentScaleFactor(1336, 750);
         // 加载gui包;(导出文件夹下面的包名)
-        UIPackage.AddPackage("FairyGui-UI/UI-Comp01/UI-Comp01_fui");
+        UIPackage.AddPackage("UI-Comp01/Game");
         // 获取包里面的组件
         Pannle = UIPackage.CreateObject("UI-Comp01", "Main").asCom;
         // 将组件添加到舞台上
         GRoot.inst.AddChild(Pannle);
+    }
 
+    void Start()
+    {   
+        // 1. 通过 UIpannel 拖拽后的操作;
         // 获取 UIpanel 上的 ui 组件
-        MainUI = GetComponent<UIPanel>().ui;
+        //MainUI = GetComponent<UIPanel>().ui;
         // 获取组件上的 button 子组件;
-        Button = MainUI.GetChild("Button").asCom;
+        //Button = MainUI.GetChild("Button").asCom;
         // 为按钮添加点击事件;
+        //Button.onClick.Add(() => { this.OnButtonClick(); });
+
+
+        // 2. 通过脚本创建 UI 后的操作
+        Button = this.Pannle.GetChild("Button").asCom;
         Button.onClick.Add(() => { this.OnButtonClick(); });
     }
 
     private void OnButtonClick()
     {
-
+        Debug.Log("呵呵呵呵呵~~~,我被点击了啊");
     }
 }
 ````
-
+将 FairyGui 导入到项目里面去之后, 会自动在 Hierarchy 面板里面创建一个 Stage Camera , 这个摄像机会将 UI 层多渲染一次, 我们可以手动关闭它对 UI 层的渲染; 调整摄像机的  Culling Mask 属性, 将 UI 勾选去掉即可;
