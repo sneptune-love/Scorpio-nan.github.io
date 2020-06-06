@@ -1,4 +1,14 @@
 ### 简述
+
+Node 的目标: 优秀的前端, 可以有效的和后端沟通; 敏捷的全栈, 快速开发全栈应用; 架构师, 践行工程化思想;
+
+WebApplication 的阶段: 
++ 后端模板 `JSP` `ASP` `PHP`;
++ 前后端分离 `Jquery`;
++ 工程化 `angular` `webpack` `glup`;
++ 全栈时代 + 大前端;
++ 云 + 端时代, 微信云开发, `flutter` + `serverless` 小程序, 云平台;
+
 现在, 越来越多的科技公司和开发者在使用 `NodeJS`开发各种应用, `NodeJS` 除了能够辅助大前端开发之外, 还可以编写 `web` 应用, 封装 `api` , 组装 `RPC` 服务等; 甚至还可以开发 `VScode` 编辑器一样的客户端应用; 
 
 与传统的服务端语言相比, `NodeJS` 简单易学, 性能好, 部署容易, 能够轻松处理高并发场景下的大量服务器请求; `NodeJS` 周边的生态也非常强大, `NPM`(Node包管理)上有几十万个模块; 
@@ -6,6 +16,54 @@
 目前 `NodeJS` 在大部分领域都占有一席之地, 尤其是 I/O 密集型的, 比如 `Web` 开发, 微服务, 前端构建等.不少大型网站都是使用 `NodeJS` 作为后台开发语言的, 用的最多的就是使用 `NodeJS` 做前端渲染和架构优化, 比如淘宝双十一, 去哪儿网 的 PC 端核心业务等. 另外, 有不少知名的前端库也是使用 `NodeJS` 开发的, 比如 `Webpack` 是一个强大的打包器, `React/Vue` 是成熟的前端组件化框架.
 
 >这里不对 NodeJS 的基础概念和用法做阐述, 具体概念和 API 详见 [NodeJS 中文官网](http://nodejs.cn/api/);
+
+### NodeJs 模块
+
+#### 核心模块
+`buffer` , `module` , `process` 等, 不需要使用 `require` 关键字来加载的模块;
+
+#### 内置模块
+`os`, `fs`, `path`, `http`, `event` 等, 不用 `install` 需要 `require` 来加载使用的模块;
+
+````js
+// 查看内存占用率
+const os = require("os");
+const me = os.freemem() / os.totalmem() * 100;
+
+console.log("内存占用率为:" + me.toFixed(2) + "%");
+````
+
+#### 第三方模块
+`mysql`, `git` 等;
+
+````bash
+# 安装 git 下载需要的依赖库
+$ npm install download-git-repo -s
+
+# 为了让下载过程看起来平滑一点, 使用进度条库
+$ npm install ora -s
+````
+
+````js
+//  从 git 上下载一个工程
+const repo = "github:Scorpio-nan/vConsole";
+const desc = "test";
+clone (repo,desc);
+async function clone (repo,desc){
+    const { promisify } = require("util");
+    const download = promisify(require("download-git-repo"));
+    const ora = require("ora");
+    const precess = ora("下载中...");
+
+    precess.start();
+    try {
+        await download(repo,desc);
+        precess.succeed();
+    } catch (error) {
+        precess.fail();
+    }
+}
+````
 
 
 

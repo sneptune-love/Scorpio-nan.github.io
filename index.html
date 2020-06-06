@@ -67,6 +67,9 @@
       navigator.serviceWorker.register('sw.js')
       console.log(navigator.serviceWorker)
     }
+    window.onerror = function(...args){
+      console.log("发生错误了 - - ~", agrs);
+    }
   </script>
 </body>
 </html>

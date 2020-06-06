@@ -5,6 +5,12 @@
 - [详见Unity教程](https://www.bilibili.com/video/BV12s411g7gU?p=64);
 - [unity进阶](https://www.bilibili.com/video/bv1K7411Z77R/);
 - [Unity脚本进阶](https://www.bilibili.com/video/bv1S4411C72d/);
+- [Unity坦克大战](https://www.bilibili.com/video/av29751762/);
+- [Unity塔防](https://www.bilibili.com/video/av29784743/);
+- [Unity FariyGui](https://www.bilibili.com/video/av29751288/);
+- [Unity消消乐](https://www.bilibili.com/video/av29791086/);
+- [Unity捕鱼达人](https://www.bilibili.com/video/av36334499/);
+
 
 ##### 面板
  1. Project 项目资源面板
@@ -1707,6 +1713,161 @@ vect = Quaternion.Euler(0, 30, 0) * vect;
 //  vect 向量移动到当前物体位置
 vect = this.transform.position + vect;
 ````
+#### WWW
+如果你想从web服务器上获取一些数据, 例如高分列表或者调用主页, 可以使用这个, 也有一些功能可以使用从web上下载的图片来创建一个纹理, 或者下载或加载新的web播放器数据文件;
+
+WWW类可以用来发送 GET 和 POST 请求到服务器, WWW类默认使用 GET 方法, 并且如果提供一个 postData 参数可用 POST 方法;
+
+````csharp
+//  exp   get 请求
+
+private void Start()
+{
+    string url = "http://kun.show.ghostory.cn/?int=7";
+
+    // 启动携程函数
+    StartCoroutine(HttpGetData(url));
+}
+
+// 创建携程程序 Get 请求
+public IEnumerator HttpGetData(string url)
+{
+    WWW www = new WWW(url);
+
+    yield return www;
+
+    if (string.IsNullOrEmpty(www.error))
+    {
+        Debug.Log("error:" + www.text);
+    }
+}
+````
+````csharp
+//  exp Post 请求
+private void Awake()
+{
+    string url = "http://kun.show.ghostory.cn/";
+
+    WWWForm form = new WWWForm();
+
+    // 往表单里面添加内容;
+    form.AddField("int", 10);
+
+    // 启动携程
+    StartCoroutine(HttpPostData(url, form));
+}
+
+// Post 请求
+public IEnumerator HttpPostData(string url,WWWForm form)
+{
+    WWW www = new WWW(url);
+
+    yield return www;
+
+    if (string.IsNullOrEmpty(www.error))
+    {
+        Debug.Log("error:" + www.text);
+    }
+}
+````
+##### 下载本地文件
+URL传递到 WWW 类的, 支持 `http://`,  `https://` 和 `file://` 协议; `ftp://` 协议的支持仅限于匿名下载;
+
+需要注意的是: 当在 windows 和 Windows Store Apps 使用文件协议来访问本地文件, 需要使用 `file:///`;
+
+windows: file:/// + 文件目录;
+
+ios: file:// + 文件目录;
+
+android: jar:file:// + 文件目录;
+
+````csharp
+//  exp
+private void Start()
+{
+    string filePath = Application.dataPath + "/Base/test.txt";
+
+    filePath = GetLocalPath(filePath);
+
+    // 读取本地文件也是一个普通的 get 请求;
+    StartCoroutine(HttpGetData(filePath));
+}
+
+// 创建携程程序 Get 请求
+public IEnumerator HttpGetData(string url)
+{
+    WWW www = new WWW(url);
+
+    yield return www;
+
+    if (string.IsNullOrEmpty(www.error))
+    {
+        Debug.Log("error:" + www.text);
+    }
+}
+
+// 根据不同平台拼接不同的本地文件地址
+private string GetLocalPath(string path)
+{
+    if(Application.platform == RuntimePlatform.WindowsPlayer || Application.platform == RuntimePlatform.WindowsEditor)
+    {
+        return "file:///" + path;
+    }
+    else if(Application.platform == RuntimePlatform.Android)
+    {
+        return "jar:file://" + path;
+    }
+    else
+    {
+        return "file://" + path;
+    }
+}
+````
+`Application.dataPath`              为当前程序的工程目录;
+`Application.streamingAssetsPath`   工程目录里面的一个特殊的目录, 只要是在这个目录下面的资源都会被打包到应用里面; 只能读不能写入, 通常使用 www api; 
+`Application.persistentDataPath`    应用程序运行时的缓存目录; 可以读写, 相当于 SDK 卡;
 
 
+
+### FairyGui
+[FairyGui 官方网站](https://www.fairygui.com/);
+
+#### FairyGui 与 Unity 结合
+
+````csharp
+using UnityEngine;
+using FairyGUI;
+
+public class FairyGuiButtonTest : MonoBehaviour
+{
+    private GComponent MainUI;
+    private GComponent Pannle;
+    private GComponent Button;
+
+    // Start is called before the first frame update
+    void Start()
+    {
+        // 设置屏幕分辨率
+        GRoot.inst.SetContentScaleFactor(800, 600);
+        // 加载gui包;(导出文件夹下面的包名)
+        UIPackage.AddPackage("FairyGui-UI/UI-Comp01/UI-Comp01_fui");
+        // 获取包里面的组件
+        Pannle = UIPackage.CreateObject("UI-Comp01", "Main").asCom;
+        // 将组件添加到舞台上
+        GRoot.inst.AddChild(Pannle);
+
+        // 获取 UIpanel 上的 ui 组件
+        MainUI = GetComponent<UIPanel>().ui;
+        // 获取组件上的 button 子组件;
+        Button = MainUI.GetChild("Button").asCom;
+        // 为按钮添加点击事件;
+        Button.onClick.Add(() => { this.OnButtonClick(); });
+    }
+
+    private void OnButtonClick()
+    {
+
+    }
+}
+````
 
