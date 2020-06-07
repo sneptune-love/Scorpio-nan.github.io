@@ -22,6 +22,25 @@ WebApplication 的阶段:
 #### 核心模块
 `buffer` , `module` , `process` 等, 不需要使用 `require` 关键字来加载的模块;
 
+````js
+const buffer = Buffer.alloc(10);
+console.log(buffer);
+//  <Buffer 00 00 00 00 00 00 00 00 00 00>
+
+//把一个字符串转换成二进制
+const buf1 = Buffer.from("a");
+console.log(buf1);
+//  <Buffer 61>
+
+const buf2 = Buffer.from("中文");
+console.log(buf2);
+//  <Buffer e4 b8 ad e6 96 87>
+
+const buf3 = Buffer.concat([buf1,buf2]);
+console.log(buf3,buf3.toString());
+//  <Buffer 61 e4 b8 ad e6 96 87> a中文
+````
+
 #### 内置模块
 `os`, `fs`, `path`, `http`, `event` 等, 不用 `install` 需要 `require` 来加载使用的模块;
 
@@ -31,6 +50,24 @@ const os = require("os");
 const me = os.freemem() / os.totalmem() * 100;
 
 console.log("内存占用率为:" + me.toFixed(2) + "%");
+````
+````js
+//  启动一个 http 服务;
+const http = require("http");
+
+const server = http.createServer((request,response)=>{
+    console.log(request);
+    response.end("Hello Node");
+})
+
+server.listen(3001);
+````
+````js
+//  复制文件
+const fs = require("fs");
+const rs = fs.createReadStream('./01.js');
+const ws = fs.createWriteStream('./copy.js');
+rs.pipe(ws);
 ````
 
 #### 第三方模块
@@ -67,6 +104,7 @@ async function clone (repo,desc){
 
 
 
+
 ### Express
 > Express 是一种保持最低程度规模的灵活 `NodeJS Web` 应用程序框架, 为 `Web` 和移动应用程序提供一组强大的功能. [Express 中文网](https://expressjs.com/zh-cn/4x/api.html)
 
@@ -83,6 +121,8 @@ express --view=ejs dirName
 #### 跨域访问
 
 什么时域? 为什么会跨域? 跨域怎么解决? 如果真的要把这些写全面的话, 估计还得再弄一个专题来写这些;  这里就不对跨域过多的阐述, 只写一下 `NodeJS` 开发项目的时候, 跨域请求是怎么解决的; 
+
+域: 协议 + 主机名 + 端口号;  三者任一一个不相同就是不同的两个域;
 
 在实际项目中, 我们通常会将项目的前后端分离出来, 独立开发, 假如前端的端口号是 `8080`, 而 `Node` 的服务端口是 `8001`, 那么就会出现访问接口跨域, 而现在的主流的解决跨域的方案就是 `CORS`; [Cors 跨域共享](http://www.ruanyifeng.com/blog/2016/04/cors.html);
 
