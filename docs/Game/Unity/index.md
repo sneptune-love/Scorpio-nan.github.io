@@ -1829,9 +1829,17 @@ private string GetLocalPath(string path)
 
 
 
+
+
+
+
+
+
+
+
 ### FairyGui
-[FairyGui 官方网站](https://www.fairygui.com/);
-[FairyGui SDK](https://github.com/fairygui/FairyGUI-unity/releases);
++ [FairyGui 官方网站](https://www.fairygui.com/);
++ [FairyGui SDK](https://github.com/fairygui/FairyGUI-unity/releases);
 
 #### FairyGui 与 Unity 结合
 新建一个 Unity 工程, 将下载好的 FairyGUI SDK (FairyGUI-u5.5-3_5_0.unitypackage) 拖拽到工程里面, 官网上下载的版本里面有包含很多例子的, 如果不需要我们可以在对话框中取消勾选;
@@ -1891,3 +1899,101 @@ public class FairyGuiButtonTest : MonoBehaviour
 }
 ````
 将 FairyGui 导入到项目里面去之后, 会自动在 Hierarchy 面板里面创建一个 Stage Camera , 这个摄像机会将 UI 层多渲染一次, 我们可以手动关闭它对 UI 层的渲染; 调整摄像机的  Culling Mask 属性, 将 UI 勾选去掉即可;
+
+
+
+
+
+
+
+
+
+
+
+
+### ToLua 框架
++ [Tolua 教程](https://www.bilibili.com/video/BV1dt411r7q6?from=search&seid=8823391319403022118)
++ [ToLua 下载](https://github.com/topameng/tolua)
++ [Tolua 千峰教育](https://www.bilibili.com/video/BV1mb411E7mY?p=86)
++ [BabelLua visual studio 插件](https://archive.codeplex.com/?p=babelua)
+#### Tolua 导入Unity
+我们从官网上下载好的 `ToLua` 包, 只需要将 `Assets` 和 `Unity5.x` 这两个目录拖拽到 Unity 工程里面覆盖原来的 `Assets` 目录即可;
+
+`````txt
+|-- Editor              //lua用到的工具
+|-- Lua                 //lua所用到的脚本文件
+|-- Plugins             //解析lua脚本用到的库
+|-- Source              //绑定c#脚本自动生成的wrap文件,将c#注册进lua(自动生成的)
+|-- Tolua               //Tolua和c#交互的核心代码
+└── webpack.config.js
+`````
+
+导入完成之后 Unity 编辑器上面的菜单栏会出现一个 Lua 菜单; 接下来我们可以写脚本测试一下:
+
+***Scripts/Test.cs***
+````csharp
+using UnityEngine;
+public class Test : MonoBehaviour
+{
+    public static string TestEcho()
+    {
+        return "Hello Lua";
+    }
+}
+````
+***Scripts/Main.cs***
+````csharp
+using UnityEngine;
+using LuaInterface;
+
+public class Main : MonoBehaviour
+{
+    private LuaState lua;
+    
+    void Start()
+    {
+        new LuaResLoader();
+        this.lua = new LuaState();
+        this.lua.Start();
+
+        LuaBinder.Bind(lua);
+        lua.DoFile("Main.lua");
+    }
+}
+````
+***Lua/Main.lua***
+````lua
+local h = Test.TestEcho();
+print(h);
+````
+如果要注册 c# 脚本到 lua, 我们还需要将写好的脚本注册到 Lua;  找到 `Eidtor` --> `Custom` --> `CustomSettings.cs`, 添加一行脚本:
+````csharp
+_GT(typeof(Test))
+````
+写完上面三个脚本之后, 回到 Unity 编辑器里面点击一下 `Lua`  -->  `Clear wrap files` 清理掉之前的生成文件后, 编辑器会再次自动生成; 
+
+然后我们在 `Source` --> `Generate` 文件夹下面看到 `TestWrap.cs` 文件, 这个文件就是注册到 lua 里面自动生成的文件; 
+````csharp
+using System;
+using LuaInterface;
+
+public class TestWrap
+{
+	public static void Register(LuaState L)
+	{
+		L.BeginClass(typeof(Test), typeof(UnityEngine.MonoBehaviour));
+		L.RegFunction("TestEcho", TestEcho);
+		L.RegFunction("__eq", op_Equality);
+		L.RegFunction("__tostring", ToLua.op_ToString);
+		L.EndClass();
+	}
+}
+...
+````
+只要是我们在这里看到的 `RegFunction` 里面的方法, 都是可以在 Lua 脚本里面直接调用的;
+
+然后将 `Main.cs` 文件拖拽给场景中的物体, 就会看到控制台输出 `"Hello Lua"`; 
+
+
+
+
