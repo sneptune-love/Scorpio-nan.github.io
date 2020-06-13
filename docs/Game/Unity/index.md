@@ -1779,7 +1779,7 @@ windows: file:/// + 文件目录;
 
 ios: file:// + 文件目录;
 
-android: jar:file:// + 文件目录;
+android: jar&#58;file&#58;// + 文件目录;
 
 ````csharp
 //  exp
@@ -1925,7 +1925,7 @@ public class FairyGuiButtonTest : MonoBehaviour
 |-- Plugins             //解析lua脚本用到的库
 |-- Source              //绑定c#脚本自动生成的wrap文件,将c#注册进lua(自动生成的)
 |-- Tolua               //Tolua和c#交互的核心代码
-└── webpack.config.js
+└..
 `````
 
 导入完成之后 Unity 编辑器上面的菜单栏会出现一个 Lua 菜单; 接下来我们可以写脚本测试一下:

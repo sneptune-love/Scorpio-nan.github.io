@@ -23,11 +23,12 @@ WebApplication 的阶段:
 `buffer` , `module` , `process` 等, 不需要使用 `require` 关键字来加载的模块;
 
 ````js
+//  创建⼀个⻓度为10字节以0填充的Buffer
 const buffer = Buffer.alloc(10);
 console.log(buffer);
 //  <Buffer 00 00 00 00 00 00 00 00 00 00>
 
-//把一个字符串转换成二进制
+//把一个字符串转换成二进制   创建⼀个Buffer包含ascii.
 const buf1 = Buffer.from("a");
 console.log(buf1);
 //  <Buffer 61>
@@ -103,8 +104,6 @@ async function clone (repo,desc){
 ````
 
 
-
-
 ### Express
 > Express 是一种保持最低程度规模的灵活 `NodeJS Web` 应用程序框架, 为 `Web` 和移动应用程序提供一组强大的功能. [Express 中文网](https://expressjs.com/zh-cn/4x/api.html)
 
@@ -151,3 +150,239 @@ app.use('/', indexRouter);
 //...
 `````
 `Access-Control-Allow-Origin` 字段设置允许访问的源;
+
+
+
+### koa
+
+概述: Koa 是一个新的 web 框架,  致力于成为 web 应用和 API 开发领域中的一个更小、更富有表现力、更健壮的基石; koa是Express的下一代基于 Node.js 的 web 框架
+
+koa2 完全使用 Promise 并配合 async 来实现异步;
+
+特点: 
++ 轻量, 无捆绑
++ 中间件架构
++ 优雅的API设计
++ 增强的错误处理
+
+````bash
+npm install koa -S
+````
+#### 中间件机制、请求、响应处理
+
+Koa中间件机制: Koa中间件机制就是函数式组合概念 `Compose` 的概念, 将一组需要顺序执行的函数复合为一个函数, 外层函数的参数实际是内层函数的返回值. 洋葱圈模型可以形象表示这种机制
+
+![articlex](/res/articlex.png)
+
+![articlex](/res/_articlex.png)
+
+````javascript
+const Koa = require('koa');
+const app = new Koa();
+
+app.use(async (ctx, next)=>{
+    console.log(1)
+    await next();
+    console.log(1)
+});
+
+app.use(async (ctx, next) => {
+    console.log(2)
+    await next();
+    console.log(2)
+})
+
+app.use(async (ctx, next) => {
+    console.log(3)
+})
+
+app.listen(3000);
+
+/**
+ *  1
+ *  2
+ *  3
+ *  2
+ *  1
+ * /
+````
+Koa 的实现原理就是将 NodeJs 原生的 http 对象进行了一个封装, 让我们在使用的时候更为优雅, 简单易用;
+
+#### 静态服务:
+````javascript
+app.use(require('koa-static')(__dirname + '/'))
+````
+
+#### context(ctx)
+koa为了能够简化API, 引入上下文context概念, 将原始请求对象req和响应对象res封装并挂载到context上, 并且在context上设置getter和setter, 从而简化操作.
+
+***ctx 实现原理***
+````javascript
+const req = {
+    get url(){
+        return this.req.url;
+    },
+    get method(){
+        return this.req.method.toLowerCase();
+    }
+}
+
+const res = {
+    get body(){
+        return this._body;
+    },
+    set body(val){
+        this._body = val;
+    }
+}
+
+const context = {
+    get url() {
+        return this.request.url;
+    },
+    get body() {
+        return this.response.body;
+    },
+    set body(val) {
+        this.response.body = val;
+    },
+    get method() {
+        return this.request.method
+    }
+}
+
+const ctx = {
+    request:req,
+    response:res,
+    req:req,
+    res:res
+}
+````
+
+#### 路由
+
+````bash
+npm install koa-router -S
+````
+
+````javascript
+const router = require('koa-router')()
+
+router.get('/string', async (ctx, next) => {
+    ctx.body = 'koa2 string'
+})
+
+router.get('/json', async (ctx, next) => {
+    ctx.body = {
+        title: 'koa2 json'
+    }
+})
+
+app.use(router.routes())
+````
+#### Koa 实现一个 phpStudy 静态服务中间件
+如果 url 访问的是目录, 就读取目录里面所有的文件, 展示在浏览器, 如果是 html 文件, 就直接打开;
+
+***static.js***
+````javascript
+const fs = require('fs');
+const path = require('path');
+
+module.exports = (dirPath = "./public") => {
+    return async (ctx, next) => {
+        if (ctx.url.indexOf("/public") === 0) {
+            // public开头 读取文件
+            const url = path.resolve(__dirname, dirPath);
+            const fileBaseName = path.basename(url);
+            const filepath = url + ctx.url.replace("/public", "");
+            try {
+                stats = fs.statSync(filepath);
+                if (stats.isDirectory()) {
+                    const dir = fs.readdirSync(filepath);
+                    // const
+                    const ret = ['<div style="padding-left:20px">'];
+                    dir.forEach(filename => {
+                        console.log(filename);
+                        // 简单认为不带小数点的格式，就是文件夹，实际应该用statSync
+                        if (filename.indexOf(".") > -1) {
+                            ret.push(
+                                `<p><a style="color:black" href="${
+                                ctx.url
+                                }/${filename}">${filename}</a></p>`
+                            );
+                        } else {
+                            // 文件
+                            ret.push(
+                                `<p><a href="${ctx.url}/${filename}">${filename}</a></p>`
+                            );
+                        }
+                    });
+                    ret.push("</div>");
+                    ctx.body = ret.join("");
+                } else {
+                    console.log("文件");
+                    const content = fs.readFileSync(filepath);
+                    ctx.body = content;
+                }
+            } catch (e) {
+                // 报错了 文件不存在
+                ctx.body = "404, not found";
+            }
+        } else {
+            // 否则不是静态资源，直接去下一个中间件
+            await next();
+        }
+    };
+};
+````
+使用:
+
+````javascript
+const static = require("./static");
+app.use(static(__dirname + '/public'));
+
+````
+#### Koa 实现一个请求拦截中间件
+请求拦截: 在黑名单中存在的 ip 访问, 将会被拒绝;
+
+***interceptor.js***
+````js
+module.exports = async function (ctx, next) {
+    const { res, req } = ctx;
+    const blackList = ['127.0.0.1'];
+    const ip = getClientIP(req);
+    if (blackList.includes(ip)) {//出现在黑名单中将被拒绝
+        ctx.body = "not allowed";
+    } else {
+        await next();
+    }
+};
+function getClientIP(req) {
+    return (
+        req.headers["x-forwarded-for"] || // 判断是否有反向代理 IP
+        req.connection.remoteAddress || // 判断 connection 的远程 IP
+        req.socket.remoteAddress || // 判断后端的 socket 的 IP
+        req.connection.socket.remoteAddress
+    );
+}
+````
+使用:
+
+````javascript
+app.use(require("./interceptor"));
+````
+
+### 网络编程
+
+#### 网络协议
+
+![network](/res/network.png)
+
+#### TCP协议
+用 TCP 协议实现一个即时通讯 IM;
+
+原理:Net 模块提供一个异步 API 能够创建基于流的 TCP 服务器, 客户端与服务器建立连接后, 服务器可以获得一个全双工 Socket 对象, 服务器可以保存 Socket 对象列表, 在接收某客户端消息时, 推送给其他客户端.
+
+
+
+
