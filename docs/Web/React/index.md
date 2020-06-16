@@ -67,8 +67,52 @@ module.exports = {
 `````
 修改完配置之后再一次运行 `npm start` 就可以直接在 `react` 组件里面写 `import { Common } from '@component/Button'` 了;
 
+#### JSX
+JSX是⼀一种JavaScript的语法扩展, 其格式⽐比较像模版语⾔言, 但事实上完全是在 JavaScript 内部实现的;
 
+##### 表达式
+`{ }` 为 jsx 的表达式;
+````javascript
+const name = "react";
+const jsx = <h2>{name}</h2>
+````
 
+jsx 中, 函数也是合法的表达式:
+````javascript
+const user = {
+    firstName:"Tom",
+    lastName:"Jerry"
+}
+
+function GetName(user){
+    return user.firstName + ' ' + user.lastName;
+}
+
+const jsx = <h2>{GetName(user)}</h2>
+````
+
+条件语句也可以基于上面的结论实现:
+````javascript
+const show = true;
+const title = show ? <h2>这是显示的title</h2> : null;
+const jsx = (
+    <div>
+        { title }
+    </div>
+)
+````
+
+数组也可以作为一组子元素, 数组中存放一组 jsx 可用于显示列表:
+````javascript
+const arr = [1,2,3].map(num =>{ <li key={num}>{num}</li> });
+const jsx = (
+    <div>
+        <ul>
+            { arr }
+        </ul>
+    </div>
+)
+````
 
 
 

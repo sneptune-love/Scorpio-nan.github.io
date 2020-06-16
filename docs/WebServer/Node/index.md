@@ -372,6 +372,47 @@ function getClientIP(req) {
 app.use(require("./interceptor"));
 ````
 
+#### Koa 跨域解决方案
+
+***CORS***
+````javascript
+app.use(async (ctx, next) => {
+    //  允许所有源来请求资源
+    ctx.set('Access-Control-Allow-Origin', ctx.request.header.origin);
+    //  允许跨域携带凭证(cookie等信息)
+    ctx.set('Access-Control-Allow-Credentials',true);
+    //  允许在http请求的头部中添加以下字段
+    ctx.set('Access-Control-Allow-Headers', 'Content-Type, Content-Length, Authorization, Accept, X-Requested-With');
+    //  允许请求资源的方式
+    ctx.set('Access-Control-Allow-Methods', 'PUT, POST, GET, DELETE, OPTIONS');
+    //  设置不缓存
+    ctx.set('Cache-Control', 'no-cache');
+    //  快速返回 OPTIONS 预检请求
+    if(ctx.method == "OPTIONS"){
+        ctx.status = 200;
+    }
+    await next();
+})
+````
+
+***Proxy***
+````bash
+npm install http-proxy-middleware
+````
+````javascript
+const express = require('express');
+const app = express();
+
+app.use(express.static(__dirname + '/'));
+const proxy = require("http-proxy-middleware");
+
+app.use('/api',proxy({
+    target:'http://localhost:4000'
+}));
+
+app.listen(3000);
+````
+
 ### 网络编程
 
 #### 网络协议
@@ -383,6 +424,233 @@ app.use(require("./interceptor"));
 
 原理:Net 模块提供一个异步 API 能够创建基于流的 TCP 服务器, 客户端与服务器建立连接后, 服务器可以获得一个全双工 Socket 对象, 服务器可以保存 Socket 对象列表, 在接收某客户端消息时, 推送给其他客户端.
 
+***socket.js***
+````js
+const net = require("net");
+const chartServer = net.createServer();
+const clientList = [];
+
+chartServer.on('connection', client=>{
+    client.write('建立连接~');
+    clientList.push(client);
+    client.on("data",data=>{
+        // data是一个二进制流数据
+        console.log("resolve:",data.toString());
+        clientList.forEach(v =>{
+            v.write(data);
+        })
+    })
+})
+````
+#### 文件上传
+````javascript
+const router = require('koa-router')()
+const fs = require('fs')
+const path = require('path')
+const chunk = []
+let size = 0
+
+router.post('/upload',async (ctx,next)=>{
+    const fileName = request.headers['file-name'] ? request.headers['file-name'] : 'abc.png'
+    const outputFile = path.resolve(__dirname, fileName)
+    const fis = fs.createWriteStream(outputFile)
+
+    // 1. Buffer connect
+    // request.on('data',data => {
+    //     chunk.push(data)
+    //     size += data.length
+    //     console.log('data:',data ,size)
+    // })
+    // request.on('end',() => {
+    //     console.log('end...')
+    //     const buffer = Buffer.concat(chunk,size)
+    //     size = 0
+    //     fs.writeFileSync(outputFile,buffer)
+    //     response.end()
+    // })
+
+    // 2. 流事件写入
+    // request.on('data', data => {
+    //     console.log('data:',data)
+    //     fis.write(data)
+    // })
+    // request.on('end', () => {
+    //     fis.end()
+    //     response.end()
+    // })
+
+    // 3. 管道
+    request.pipe(fis)
+    response.end()
+})
+
+````
+#### 网络爬虫
+````javascript
+const originRequest = require("request");
+// 服务端的 jquery 库
+const cheerio = require("cheerio");
+const iconv = require("iconv-lite");
+function request(url, callback) {
+    const options = {
+        url: url,
+        encoding: null
+    };
+    originRequest(url, options,callback);
+}
+
+for (let i = 100553; i < 100563; i++) {
+    const url = `https://www.dy2018.com/i/${i}.html`;
+    request(url, function(err, res, body) {
+        const html = iconv.decode(body, "gb2312");
+        const $ = cheerio.load(html);
+        console.log($(".title_all h1").text());
+    });
+}
+````
+
+### Mysql 数据持久化
+NodeJS 中实现数据持久化的多种方法:
++ 文件系统 fs
++ 数据库
+    + 关系型数据库 mysql
+    + 文档型数据库 MongoDB
+    + 键值对数据库 redis
+
+#### 文件型数据库实现:
+
+***index.js***
+````javascript
+const fs = require('fs');
+
+function get(key){
+    fs.readFile('./db.json',(err,data)=>{
+        if(err) console.log(err);
+        const json = JSON.parse(data);
+        console.log(json[key]);
+    })
+}
+
+function set(key,value){
+    fs.readFile(__dirname + '/db.json',(err,data)=>{
+        if(err) console.log(err);
+        // 如果读取出来的是个空文件就设置一个对象;
+        const json = data ? JSON.parse(data) : {}
+        json[key] = value;
+        
+        fs.writeFile('./db.json',JSON.stringify(json),error=>{
+            if(error) console.log(error);
+            console.log("写入成功~");
+        })
+    })
+}
+
+// 命令行接口(用命令行测试程序)
+const readline = require('readline');
+// 创建一个交互界面
+const rl = readline.createInterface({
+    input:process.stdin,
+    output:process.stdout
+})
+
+rl.on("line",function(input){
+    const [op,key,value] = input.split(' ');
+    if(op == 'get'){
+        get(key);
+    }else if(op == 'set'){
+        set(key,value);
+    }else{
+        rl.close();
+    }
+})
+
+rl.on("close",function(){
+    console.log("程序结束~");
+    process.exit(0);
+})
+````
+````bash
+npm install readline
+node index.js
+
+set user {name:"test"}
+get user
+````
+#### Mysql数据库
+ORM - Sequelize : 基于Promise的ORM(Object Relation Mapping), 是一种数据库中间件 支持多种数据库、事务、关联等;
+
+简化 sql 操作, 让操作 sql 像操作普通的对象一样, 可以使用 `.` 来操作 mysql;
+
++ [Sequelize 中文文档](https://github.com/demopark/sequelize-docs-Zh-CN)
+
+````bash
+npm install mysql2 sequelize -S
+````
+````javascript
+(async ()=>{
+    const {Sequelize,Model,DataTypes} = require('sequelize');
+
+    // 建立连接
+    const sequelize = new Sequelize("test","root","root",{
+        host:"localhost",
+        // 一个中间件系统对应多种数据库的实现, 这里使用的是 mysql
+        dialect:"mysql"
+    })
+    
+    class Furit extends Model{}
+
+    // 定义模型
+    Furit.init({
+        name:{type:DataTypes.STRING(20),allowNull:false},
+        price:{type:DataTypes.FLOAT,allowNull:false},
+        stock:{type:DataTypes.INTEGER,defaultValue:0}
+    },{
+        sequelize,
+        modleName:"Furit"
+    });
+
+    let ret = await Furit.sync();
 
 
+    console.log(ret);
+    /**
+     *   Executing (default): CREATE TABLE IF NOT EXISTS `Furits` (`id` INTEGER NOT NULL
+     *   auto_increment , `name` VARCHAR(20) NOT NULL, `price` FLOAT NOT NULL, `stock` IN
+     *   TEGER DEFAULT 0, `createdAt` DATETIME NOT NULL, `updatedAt` DATETIME NOT NULL, P
+     *   RIMARY KEY (`id`)) ENGINE=InnoDB;
+     *
+     */
+
+    // 插入数据
+    ret = await Furit.create({
+        name:"苹果",
+        price:10
+    })
+
+    // 读取数据
+    ret = await Furit.findAll();
+    console.log("data:",JSON.stringify(ret));
+
+    // 修改数据
+    await Furit.update(
+        { price:15 },
+        { where: {name : "苹果"}}
+    )
+
+    // 操作符条件查询
+    const OP = Sequelize.Op;
+
+    ret = await Furit.findAll({
+        where:{
+            price:{
+                [OP.lt]:30,      // 小于30
+                [OP.gt]:10      // 大于10
+            }
+        }
+    })
+
+    console.log("条件查询",ret);
+
+})()
+````
 
