@@ -721,7 +721,7 @@ function TabBarCmp(props) {
 ### 高阶组件
 为了提高组件复用率, 可测试性, 就要保证组件功能单一性; 但是若要满足复杂需求就要扩展功能单一的组件, 在 `React` 里就有了 `HOC(Higher-Order Components)`的概念;
 
->定义: 是一个函数, 它接收一个组件并返回另一个组件;
+>定义: 是一个函数, 它接收一个组件并返回另一个组件, 该组件必须是 function 组件或者是 class 组件;
 
 ````javascript
 import React, { Component } from 'react';
@@ -868,4 +868,957 @@ export default class HocPage extends Component{
     }
 }
 ````
+#### 处理原生 Dom 标签
+高阶组件的定义是, 必须接受 function 组件和 class 组件, 如果我们需要对原生的 dom 标签进行包装, 就要使用 `React.cloneElement()` 或 `React.createElement()` 方法;
+
+````javascript
+import React, { Component } from 'react';
+
+const FuncComp = cmp =>{
+    // 1. 直接返回原生标签
+    // return cmp;
+
+    // 2. React.cloneElement()
+    // return React.cloneElement(cmp, {
+    //     className:"border"
+    // })
+
+    // 3. React.createElement()
+    // return React.createElement(cmp.type,{
+    //     ...cmp.props,
+    //     className:"border"
+    // })
+
+    // 4. 
+    return <cmp.type {...cmp.props}>
+}
+````
+#### 高阶组件复写 Context
+
+***AppContext.js***
+````javascript
+import React from 'react';
+// @ts-ignore
+export const Context = React.createContext();
+export const Provider = Context.Provider;
+export const Consumer = Context.Consumer;
+
+export const CtxComp = Cmp => props =>{
+    return (
+        <Consumer>
+            {
+                ctx => <Cmp {...props} {...ctx}/>
+            }
+        </Consumer>
+    )
+}
+````
+
+***HomePage.js***
+````javascript
+import React , { Component } from 'react';
+import { CtxComp } from '../AppContext';
+
+function RangeComp(props){
+    return(
+        <div className="component">
+            自定义组件 {JSON.stringify(props)}
+        </div>
+    )
+}
+
+export default class ContextFun extends Component{
+    render(){
+        const HandleView = CtxComp(RangeComp);
+        return(
+            <div>
+                <HandleView/>
+            </div>
+        )
+    }
+}
+````
+
+***App.js***
+````javascript
+...
+render(){
+    return(
+        <Provider value={ store }>
+            <Home/>
+        </Provider>
+    )
+}
+````
+这样, 我们就将 `Consumer` 包装成了一个高阶组件, 可以在任何组件里面使用了;
+
+### 复合组件
+复合组件给与你足够的敏捷去定义自定义组件的外观和行为, 这种方式更明确和安全. 如果组件间有公用的非 UI 逻辑, 将它们抽取为 JS 模块导入使用而不是继承它;
+
+#### 基本使用(匿名插槽)
+基本用法跟 vue 的插槽 (slot) 的用法差不多;
+
+***App.js***
+````javascript
+import Layout from './components/Layout';
+
+function App() {
+    return (
+        <div className="App">
+            <Layout>
+                <h2>这是APP组件的内容</h2>
+                <div className="content">随便写点什么内容</div>
+            </Layout>
+        </div>
+    );
+}
+export default App;
+````
+***Layout.js***
+````javascript
+import React, { Component } from 'react';
+
+export default class Layout extends Component{
+    render(){
+        return(
+            <div>
+                { this.props.children }
+            </div>
+        )
+    }
+}
+````
+#### 具名插槽
+很多时候我们的业务需要将多个不同的元素放入一个 Layout 容器内, 这个时候就可以用到具名插槽;
+***App.js***
+````javascript
+import Layout from './components/Layout';
+
+function App() {
+    return (
+        <div className="App">
+            <Layout>
+                {{
+                    header:<span>头部</span>,
+                    content:"内容",
+                    btn:<button>确认</button>
+                }}
+            </Layout>
+        </div>
+    );
+}
+export default App;
+````
+***Layout.js***
+````javascript
+import React, { Component } from 'react';
+
+export default class Layout extends Component{
+    render(){
+        const { children } = this.props;
+        return(
+            <div>
+                <header>
+                    { children.header }
+                </header>
+                <div className="main">{ children.content } </div>
+                <footer> { children.btn } </footer>
+            </div>
+        )
+    }
+}
+````
+### Hooks
+`Hook` 是 `React16.8` 一个新增项, 它可以让我们在不编写 `class` 的情况下使用 `state` 以及其他的 `React` 特性;
+
+Hooks 特点:
++ 在无需修改组件结构的情况下复用状态逻辑;
++ 可将组件中相互关联的部分拆分成更小的函数, 复杂组件将变得更容易理解;
++ 更简洁、更易理解的代码
+
+#### 状态钩子 State Hook
+`useState` 返回两个值相当于 `class` 组件内的 `state` 和 `setState`; 方便了函数组件进行状态的存储和使用;
+
+自定义 Hook (custom hook)
+````javascript
+import React , {useState,useEffect} from 'react';
+
+// 自定义 hooks (custom hook), 方法名一定要是 use 开头
+function useClock(){
+    const [date,setDate] = useState(new Date());
+    useEffect(()=>{
+        const timer = setInterval(() => {
+            setDate(new Date());
+        }, 1000);
+        return ()=> clearInterval(timer);
+    },[])
+    return date;
+}
+
+export default function(props){
+    const [counter,setCounter] = useState(0);
+    return(
+        <div>
+            Hooks Page
+            <h2>{ useClock().toLocaleTimeString() }</h2>
+            <button onClick={ ()=>{ setCounter(counter + 1) } }>按钮++</button> <span> { counter } </span>
+        </div>
+    )
+}
+````
+#### 副作用钩子 Effect Hook
+`useEffect` 给函数组件增加了执行副作用操作的能力; React 保证了每次运行 `effect` 的同时, DOM 都已经更新完毕;
+
+在 `useEffect` 我们可以做很多操作:
++ ajax 异步获取数据, 更新状态;
+    ````javascript
+    useEffect(()=>{
+        axios.get().then(res =>{
+            //code
+        });
+    })
+    ````
++ 设置依赖
+    ````javascript
+    // 设置空数组意为没有依赖，则副作用操作仅执行一次
+    useEffect(()=>{...}, [])
+    ````
++ 清除工作: 有一些副作用是需要清除的, 清除工作非常重要的, 可以防止引起内存泄露;
+    ````javascript
+    useEffect(()=>{
+        const timer = setInterval(() => {
+            setDate(new Date());
+        }, 1000);
+        return ()=> clearInterval(timer);
+    },[])
+    ````
+
+#### Hooks 实现 TodoList 
+***TodoList.js***
+````javascript
+import React, { useState , useEffect } from 'react';
+import AddItem from './AddItem';
+
+export default function(props){
+    const [list , updateList] = useState(["Wath TV","Read Book","Learing English","Do Work"]);
+
+    const delItem = (index)=>{
+        let tem = [...list];
+        tem.splice(index,1);
+        updateList(tem);
+    }
+
+    return(
+        <div>
+            <AddItem list={ list } addItem={ updateList }/>
+            <ul>
+                {
+                    list.map((item,index)=>{
+                        return <li key={ index } onClick={()=>{ delItem(index) }}>{ item }</li>
+                    })
+                }
+            </ul>
+        </div>
+    )
+}
+````
+***AddItem.js***
+````javascript
+import React, { useState , useEffect } from 'react';
+
+export default function({list,addItem}){
+    const [name,setName] = useState('');
+    
+    return(
+        <div>
+            <input value={ name } onChange={ (ev)=>{ setName(ev.target.value) } }/>
+            <button onClick={()=>{ addItem([...list,name]) }}>添加一条</button>
+        </div>
+    )
+}
+````
+#### Reducer Hook
+`useReducer` 就是一个纯函数, 接收旧的 `state` 和 `action`, 返回新的 `state`;
+
+`useReducer`是 `useState` 的可选项, 常用于组件有复杂状态逻辑时, 类似于 `redux` 中 `reducer` 概念;
+
+`useReducer` 改写 TodoList:
+
+***TodoList.js***
+````javascript
+import React, { useReducer, useEffect } from 'react';
+import AddItem from './AddItem';
+
+function ListReducer(state = [],action){
+    switch(action.type){
+        case "replace":
+        case "init":
+            return [...action.payload];
+        case "add":
+            return [...state,action.payload];
+        default:
+            return state;
+    }
+}
+
+export default function(){
+    // useReducer 和 useState 的返回值一样, 第一个参数是处理函数, 第二个参数是初始化 state 的值;
+    const [list,dispath] = useReducer(ListReducer,[]);
+
+    useEffect(()=>{
+        // setTimeout 模拟 ajax 请求;
+        const timer = setTimeout(() => {
+            dispath({
+                type:"init",
+                payload:["Wath TV","Read Book","Learing English","Do Work"]
+            })
+        }, 2000);
+        return ()=> clearTimeout(timer);
+    },[])
+
+    const delItem = (index)=>{
+        let tem = [...list];
+        tem.splice(index,1);
+        dispath({
+            type:'replace',
+            payload:tem
+        })
+    }
+
+    return(
+        <div>
+            <AddItem addItem={(item) => dispath( {type:'add',payload:item}) }/>
+            <ul>
+                {
+                    list.map((item,index)=>{
+                        return <li key={ index } onClick={(index)=>{ delItem(index) }}>{ item }</li>
+                    })
+                }
+            </ul>
+        </div>
+    )
+}
+````
+***AddItem.js***
+````javascript
+import React, { useState } from 'react';
+
+export default function({addItem}){
+    const [name,setName] = useState('');
+    
+    return(
+        <div>
+            <input value={ name } onChange={ (ev)=>{ setName(ev.target.value) } }/>
+            <button onClick={()=>{ addItem(name) }}>添加一条</button>
+        </div>
+    )
+}
+````
+#### Context Hook
+`useContext` 用于在快速在函数组件中导入上下文;
+
+改写 `Context` 状态
+````javascript
+//  App.js
+import React from 'react';
+import {Provider} from './AppContext';
+import ContextPage from './pages/ContextPage';
+
+const store = {
+    user:{
+        name:"小明"
+    }
+}
+
+function App() {
+    return (
+        <div className="App">
+            <Provider value={ store }>
+                <ContextPage/>
+            </Provider>
+        </div>
+    );
+}
+export default App;
+
+
+//  AppContext.js
+import React from 'react';
+export const Context = React.createContext();
+export const Provider = Context.Provider;
+export const Consumer = Context.Consumer;
+
+
+//  ContextPage.js
+import React , { Component,useContext } from 'react';
+import { Context } from '../AppContext';
+
+export default function(){
+    const Ctx = useContext(Context);
+    return(
+        <div>
+            { Ctx.user.name }
+        </div>
+    )
+}
+````
+#### Hook 总结
+
+[React Hooks Api](https://react.docschina.org/docs/hooks-reference.html)
+
+Hook 使用规则:
++ 只在最顶层使用 Hook, 不能在循环, 条件或嵌套函数中调用 Hook; 如果我们想要有条件地执行一个 effect, 可以将判断放到 Hook 的内部;
++ 只能在 React 函数中调用 Hook, 不能在普通 JavaScript 函数中调用 Hook;
+
+### 第三方组件
+
+#### antd-design
+首先, 我们需要用 `yarn` 来安装 `antd` 库, 而且需要注意的是, 这里最好是只使用 `yarn`, 不要用其他的包管理工具;
+````bash
+yarn add antd
+````
+##### 配置 antd 库按需加载
+上面的安装命令是我们将 `antd` 所有的组件都下载到 `node_modules` 里面了, 很多时候项目里面是用不到所有的组件, 所以我们还需要配置按需加载;
+
+安装 `react-app-rewired ` 取代 `react-scripts`, 可以扩展 `webpack `的配置 , 类似 `vue.config.js`
+
+````bash
+yarn add react-app-rewired customize-cra babel-plugin-import
+````
+安装完成之后需要修改一些配置, 首先我们需要在根目录下面新建一个 `config-overrides.js`:
+````javascript
+const { override, fixBabelImports, addDecoratorsLegacy } = require("customize-cra");
+module.exports = override(
+    //antd按需加载
+    fixBabelImports("import", {
+        libraryName: "antd",
+        libraryDirectory: "es",
+        style: "css"
+    }),
+    //配置装饰器
+    addDecoratorsLegacy()
+);
+
+//  修改 package.json
+"scripts": {
+    "start": "react-app-rewired start",
+    "build": "react-app-rewired build",
+    "test": "react-app-rewired test",
+    "eject": "react-app-rewired eject"
+}
+````
+支持装饰器配置
+````bash
+yarn add @babel/plugin-proposal-decorators
+````
+配置完成之后, 我们也可以将 `webpack` 配置弹出, 自定义配置, 使用 `yarn eject` 命令;
+
+完成之后, 我们就可以在  `react` 组件里面按需加载 `antd` 的组件了:
+````javascript
+import { Button } from 'antd';
+````
+#### antd-design 表单使用案例
+````javascript
+import React, { Component } from 'react';
+import { Button , Form, Input, message} from 'antd';
+
+export default class FromPage extends Component{
+    constructor(args){
+        super(args);
+        this.formRef = React.createRef();
+    }
+
+    submit = ()=>{
+        const { getFieldValue , validateFields } = this.formRef.current;
+
+        validateFields().then(res=>{
+            if(!res.userName){
+                message.error("用户名不能为空~");
+            }
+        })
+        console.log(getFieldValue('userName'))
+    }
+
+    render(){
+        console.log(this.formRef);
+        return (
+            <Form ref={ this.formRef }>
+                <Form.Item label="用户名" name="userName">
+                    <Input/>
+                </Form.Item>
+                <Form.Item label="密码" name="password">
+                    <Input.Password/>
+                </Form.Item>
+                <Form.Item>
+                    <Button onClick={()=>{ this.submit() }}>提交</Button>
+                </Form.Item>
+            </Form>
+        )
+    }
+}
+````
+#### 自定义 Dialog 组件实现
+
+弹窗类组件的要求弹窗内容在A处声明, 却在B处展示. react 中相当于弹窗内容看起来被 `render` 到一个组件里面去, 实际改变的是网页上另一处的 `DOM `结构, 这个显然不符合正常逻辑. 但是通过使用框架提供的特定 `API` 创建组件实例并指定挂载目标仍可完成任务;
+
+***Dialog.js***
+````javascript
+import React, { Component } from 'react';
+import { createPortal } from 'react-dom';
+import '../index.css';
+
+export default class Dialog extends Component{
+    constructor(args){
+        super(args);
+        const doc = window.document;
+        this.node = doc.createElement("div");
+        doc.body.appendChild(this.node);
+    }
+    
+    destory(){
+        document.body.removeChild(this.node);
+    }
+
+    UNSAFE_componentWillUnmount(){
+        this.destory();
+    }
+
+    render(){
+        const { hide } = this.props;
+        return createPortal(
+            <div className="dialog" onClick={(e)=>{ typeof hide == "function" && hide();this.destory();e.stopPropagation();}}>
+                <div className="content">
+                    这里是弹出框的内容
+                    {
+                        typeof hide == "function" &&(
+                            <button onClick={ (e)=>{ hide();this.destory();e.stopPropagation()} }>关闭弹窗</button>
+                        )
+                    }
+                </div>
+            </div>,
+            this.node
+        )
+    }
+}
+````
+### Redux
+[Redux Book 中文文档](http://cn.redux.js.org/)
+
+`Redux` 是 `JavaScript` 应用的状态容器, 它保证程序行为一致性且易于测试;
+
+![Redux](./res/redux.jpg)
+
+安装 redux:
+````bash
+yarn add redux
+````
+Redux 核心概念:
++ 1. createStore 创建 stroe;
++ 2. reducer 初始化数据, 修改 state 状态;
++ 3. getState 获取初始化状态;
++ 4. dispatch 提交订阅, 通知 reducer 修改状态;
++ 5. subscribe 变更订阅, state 发生改变的时候会通知;
+
+#### 累加器示例
+应用中所有的 `state` 都以一个对象树的形式储存在一个单一的 `store` 中. 惟一改变 `state` 的办法是触发 `action`, 一个描述发生什么的对象. 为了描述 `action` 如何改变 `state` 树. 需要编写 `reducers`; 下面我们通过一个小的示例来看一下 `redux` 怎么使用;
+
+***store.js***
+````javascript
+import { createStore } from 'redux';
+
+// reducer 负责数据的初始化和修改
+function conterReducer(state = 0, action){
+    switch(action.type){
+        case "increment":
+            return state += 1;
+        case "decrement":
+            return state -= 1;
+        default:
+            return state;
+    }
+}
+
+const store = createStore(conterReducer);
+
+export default store;
+````
+***ReduxPage.js***
+````javascript
+import React, { Component } from 'react';
+import store from '../store';
+
+export default class ReduxPage extends Component{
+
+    increment = ()=>{
+        store.dispatch({ type:"increment" })
+    }
+
+    decrement = ()=>{
+        store.dispatch({ type:"decrement" })
+    }
+
+    componentDidMount(){
+        // 订阅, stroe 中的 state 发生改变时候会触发;
+        store.subscribe(()=>{
+            // 强制更新页面, dispatch 过去的值其实是已经发生改变了, 但是视图没有更新;
+            this.forceUpdate();
+        })
+    }
+
+    render(){
+        console.log(store);
+        return(
+            <div>
+                <h2>Redux;</h2>
+                <h3>{ store.getState() }</h3>
+                <div>
+                    <button onClick={ this.increment }>加加</button>  <button onClick={ this.decrement }>减减</button>
+                </div>
+            </div>
+        )
+    }
+}
+````
+#### Redux 中间件
+中间件就是一个函数, 对 `store.dispatch` 方法进行改造, 在发出 `Action` 和执行 `Reducer` 这两步之间, 添加了其他功能;
+
+`Redux` 只是个纯粹的状态管理器, 默认只支持同步, 实现异步任务; 比如延迟, 网络请求, 需要中间件的支持, 比如我们试用最简单的 `redux-thunk` 和 `redux-logger`;
+
+````bash
+yarn add redux-thunk redux-logger
+````
+***stroe.js***
+````javascript
+import { createStore, applyMiddleware } from 'redux';
+
+import thunk from 'redux-thunk';
+import logger from 'redux-logger';
+
+// reducer 负责数据的初始化和修改
+function conterReducer(state = 0, action){
+    switch(action.type){
+        case "increment":
+            return state += 1;
+        case "decrement":
+            return state -= 1;
+        default:
+            return state;
+    }
+}
+
+const store = createStore(conterReducer,applyMiddleware(thunk,logger));
+
+export default store;
+````
+
+***ReduxPage.js***
+````javascript
+import React, { Component } from 'react';
+import store from '../store';
+
+export default class ReduxPage extends Component{
+
+    increment = ()=>{
+        store.dispatch({ type:"increment" })
+    }
+
+    decrement = ()=>{
+        store.dispatch({ type:"decrement" })
+    }
+
+    asyncAdd = ()=>{
+        // dispatch 提交过去的只能是一个 action , 这里是中间件增强了 redux 的功能;
+        store.dispatch(dispatch =>{
+            // setTimeout 模拟ajax 异步请求
+            setTimeout(()=>{
+                dispatch({ type:"increment" })
+            },1000)
+        })
+    }
+
+    componentDidMount(){
+        // 订阅, stroe 中的 state 发生改变时候会触发;
+        store.subscribe(()=>{
+            // 强制更新页面, dispatch 过去的值其实是已经发生改变了, 但是视图没有更新;
+            this.forceUpdate();
+        })
+    }
+
+    render(){
+        console.log(store);
+        return(
+            <div>
+                <h2>Redux;</h2>
+                <h3>{ store.getState() }</h3>
+                <div>
+                    <button onClick={ this.increment }>加加</button>  
+                    <button onClick={ this.decrement }>减减</button> 
+                    <button onClick={ this.asyncAdd }>异步调用</button>
+                </div>
+            </div>
+        )
+    }
+}
+````
+
+### Rreact-Redux
+`redux` 在解决了 `react` 数据管理的问题, 但是当我们每次使用的时候, 都需要重新调用 `render (this.forceUpdate())` 和 `getState` , 这样做比较 `low`, 想用更 `react` 的方式来写, 需要 `react-redux` 的支持;
+
+> 类似 `vue` 的 `vuex` , 直接将 `vuex` 挂载到 `vue` 的原型链上, 我们不用每一个组件里面引入, 就可以使用 `vuex` 的功能;
+
+安装:
+````bash
+yarn add react-redux
+````
+`react-redux` 提供了两个 api 
++ 1. Provider 为后代组件提供store;
++ 2. connect 为组件提供数据和变更更⽅方法
+
+#### react-redux 累加器
+用 `react-redux` 改写上面的 `redux` 的累加器:
+
+***store.js***
+````javascript
+import { createStore } from 'redux';
+
+function countReducer(state = 0, action){
+    switch(action.type){
+        case "increment":
+            return state += 1;
+        case "decrement":
+            return state -= 1;
+        default:
+            return state;
+    }
+}
+
+const store = createStore(countReducer);
+
+export default store;
+````
+***App.js***
+````javascript
+import React from 'react';
+import ReactReduxPage from './pages/ReactReduxPage';
+import { Provider } from 'react-redux';
+import store from './store';
+
+function App() {
+    return (
+        <Provider store={ store }>
+            <ReactReduxPage/>
+        </Provider>
+    );
+}
+
+export default App;
+````
+***ReactReduxPage.js***
+````javascript
+import React, { Component } from 'react';
+import { connect } from 'react-redux';
+
+class ReactReduxPage extends Component{
+    render(){
+        const { counter , dispatch } = this.props;
+        console.log(this.props)     // {counter: 0, dispatch:ƒ }
+        return(
+            <div>
+                <h1>React Redux Page</h1>
+                <h2>{ counter }</h2>
+                <button onClick={()=>{ dispatch({ type:"increment" }) }}>加加</button>
+                <button onClick={()=>{ dispatch({ type:"decrement" }) }}>减减</button>
+            </div>
+        )
+    }
+}
+
+// connect 是个高阶组件, 第二个参数接收的是个组件, 返回一个新的组件;
+// 第一个函数里面给我们提供了两个参数, mapStateToProps , mapDispatchToProps 可以将 state 和 dispatch 传递给组件的 props;
+export default connect(
+    // mapStateToProps
+    state => ({ counter : state }),
+    // mapDispatchToProps
+)(ReactReduxPage);
+````
+如果我们不想使用 `dispatch` , 就可以使用 `connect` 第一个函数的第二个参数, 将 `dispatch` 方法映射到 `props` 里面:
+
+***ReactReduxPage.js***
+````javascript
+import React, { Component } from 'react';
+import { connect } from 'react-redux';
+
+class ReactReduxPage extends Component{
+    render(){
+        const { counter ,  increment, decrement } = this.props;
+        console.log(this.props)  // {counter: 0, increment: ƒ, decrement: ƒ}
+        return(
+            <div>
+                <h1>React Redux Page</h1>
+                <h2>{ counter }</h2>
+                {/* 或者是我们可以直接在 mapDispatchToProps 映射两个方法, 就不需要写 dispatch 了*/}
+                <button onClick={ increment }>加加</button>
+                <button onClick={ decrement }>减减</button>
+            </div>
+        )
+    }
+}
+export default connect(
+    // mapStateToProps
+    state => ({ counter : state }),
+    // mapDispatchToProps
+    {
+        increment:()=> ({ type:"increment" }),
+        decrement:()=> ({ type:"decrement" })
+    }
+)(ReactReduxPage);
+````
+#### 多个状态管理
+累加器只是状态中的一个, 通常情况下, 我们开发项目的时候, 同时需要管理多个状态, 有很多个 `reducer`, 如果每个 `reducer` 都写一个文件, 那就有点乱了, 使用 `redux` 里面的 `combineReducers` 可以同时管理多个 `reducer`:
+
+***store.js***
+````javascript
+import { createStore, combineReducers } from 'redux';
+
+function countReducer(state = 0, action){
+    switch(action.type){
+        case "increment":
+            return state += 1;
+        case "decrement":
+            return state -= 1;
+        default:
+            return state;
+    }
+}
+
+const store = createStore(combineReducers(
+    {
+        counter:countReducer
+    }
+));
+
+export default store;
+````
+引用的时候就需要使用 `state` 的某个具体属性了:
+````javascript
+....
+export default connect(
+    // mapStateToProps
+    state => ({ counter : state.counter }),
+    // mapDispatchToProps
+    {
+        increment:()=> ({ type:"increment" }),
+        decrement:()=> ({ type:"decrement" })
+    }
+)(ReactReduxPage);
+````
+
+### React-Router
+[React Router 中文文档](https://react-guide.github.io/react-router-cn/index.html)
+
+`react-router` 包含3个库, `react-router` 、`react-router-dom` 和 `react-router-native`;  `react-router` 提供最基本的路路由功能, 实际使用的时候我们不会直接安装`react-router`, 而是根据应用运行的环境选择安装 `react-router-dom` (在浏览器器中使用) 或 `react-router-native`( 在 rn 中使用); `react-router-dom` 和`react-router-native` 都依赖 `react-router`, 所以在安装时, `react-router` 也会⾃自动安装;
+
+安装:
+````bash
+yarn add react-router-dom
+````
+
+#### 基本使用
+`react-router` 中奉行一切皆组件的思想, 路由器- `Router`、链接- `Link`、路由-`Route`、独占-`Switch`、重定向-`Redirect` 都以组件形式存在;
+
+````javascript
+import React, { Component } from 'react';
+import {BrowserRouter,Link,Route} from 'react-router-dom';
+
+import HomePage from './HomePage';
+import UserPage from './UserPage';
+
+export default class ReactRouterPage extends Component{
+    render() {
+        return (
+            <BrowserRouter>
+                <Link to="/">首页</Link>
+                <Link to="/user">用户中心</Link>
+
+                {/* exact 为精准匹配, 如果不写就是模糊匹配, 这个时候会同时显示两个页面 */}
+                <Route exact path="/" component={ HomePage }/>
+                <Route 
+                    path="/user" 
+                    component={ UserPage }
+                    // render={()=> <div> Router Render </div>}
+                    // children = {()=> <div> Router Children </div>}
+                />
+            </BrowserRouter>
+        );
+    }
+}
+````
+#### Route渲染内容的三种方式
+`Route`渲染优先级: `children > component > render`;
+
+三者能接收到同样的 `[route props]`, 包括 `match`,  `location and history`, 但是当不匹配的时候, `children` 的 `match` 为 `null`;
+
+这三种⽅方式互斥, 只能用其中一种, 它们的不不同之处可以参考下文:
+
+##### children:func
+有时候, 不管 `location` 是否匹配, 都需要渲染一些内容, 这时候可以用 `children`. 除了不管 `location` 是否匹配都会被渲染之外, 其它工作⽅方法与 `render` 完全一样;
+
+##### render:func
+当我们用 `render` 的时候, 调用的只是个函数. 但是它和 `component` 一样, 能访问到所有的 `[route props]`;
+
+##### component:component
+只在当`location` 匹配的时候渲染; 
+
+当我们用 `component` 的时候, `Router`会用指定的组件和 `React.createElement` 创建一个新的 `[React element]`. 这意味着提供的是一个内联函数的时候. 每次 `render`都会创
+建一个新的组件.  这会导致不再更新已经现有组件, 而是直接卸载然后再去挂载一个新的组件. 因此, 当用到内联函数的内联渲染时, 请使用`render` 或者 `children`;
+
+````javascript
+import React, { Component } from "react";
+import ReactDOM from "react-dom";
+import { BrowserRouter, Route } from "react-router-dom";
+
+class Foo extends Component {
+    componentDidMount() {
+        console.log("Foo componentDidMount");
+    }
+    componentWillUnmount() {
+        console.log("Foo componentWillUnmount");
+    }
+    render() {
+        const { counter } = this.props;
+        return <div>Foo: {counter}</div>;
+    }
+}
+
+export default class RouterPage extends Component {
+    constructor(prop) {
+        super(prop);
+        this.state = { counter: 1 };
+    }
+    render() {
+        const { counter } = this.state;
+        return (
+            <div>
+                <button onClick={() => this.setState({ counter: counter + 1 })}>{ counter }</button>
+                <BrowserRouter>
+                    {/* 渲染component会调用React.createElement, 如果使⽤用下⾯面这种匿匿名函数的形式，
+                        每次都会生成一个新的匿名函数，导致生成的组件的type总不相同，会产生重复的卸载和挂载。
+                    */}
+
+                    {/* <Route component={() => <Foo counter={this.state.counter} />} /> */}
+
+                    {/* 以下才是正确使⽤用 */}
+                    <Route render={() => <Foo counter={this.state.counter} />} />
+                </BrowserRouter>
+            </div>
+        );
+    }
+}
+````
+点击按钮, 每次 `state` 发生改变的时候, 如果是用的 `component` , `<Foo>` 组件就会每一次都执行 `componentDidMount` 和 `componentWillUnmount`; 这种情况下, 我们就可以使用 `render`;
+
+
+
+
+
 
