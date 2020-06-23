@@ -12,61 +12,6 @@ npm install create-react-app -g
 # 用脚手架创建一个 my-project 的工程目录
 create-react-app my-project
 `````
-### 扩展 create-react-app
-
-`create-react-app` 官方推荐的工具是讲一些复杂的 `webpack` 配置封装了起来, 让开发者不用再关心这些工具的具体配置, 从而降低了工具的使用难度;
-
-但是对于熟悉`webpack` 的开发者, 并且想要定制化 `webpack` 配置, 适应自己的开发环境, 这个时候我们就需要使用一些其他的方法去修改配置了; 因为 `create-react-app` `webpack` 的配置是没有暴露在外面的;
-
-#### 配置 alias
-
-很多时候我们开发项目的时候都会把项目目录划分成多个文件夹, 每个文件夹下面又分为多个不同功能的模块子文件夹, 这个时候, 如果组件里面需要引入外层的公用的组件, 那我们得这么写:
-`````javascript
-import { Common } from '../../../src/common';
-`````
-而且, 目录层次越多, 后面的文件查找越复杂, 那么我们就可以通过去修改 `webpack` 的 `resolve` 里面的 `alias` 别名, 为我们制定文件目录别名;
-
-`create-react-app`会安装一个 `react-scripts`的依赖包, 我们可以打开 `node_modules/react-scripts/config/webpack.config.js` 这里才是 `webpack` 的配置部分, `react-scripts` 里面对 `path` 进行了封装, `node_modules/react-scripts/config/paths.js`:
-`````javascript
-module.exports = {
-    dotenv: resolveApp('.env'),
-    appPath: resolveApp('.'),
-    appBuild: resolveApp('build'),
-    appPublic: resolveApp('public'),
-    appHtml: resolveApp('public/index.html'),
-    appIndexJs: resolveModule(resolveApp, 'src/index'),
-    appPackageJson: resolveApp('package.json'),
-    appSrc: resolveApp('src'),
-    appTsConfig: resolveApp('tsconfig.json'),
-    appJsConfig: resolveApp('jsconfig.json'),
-    yarnLockFile: resolveApp('yarn.lock'),
-    testsSetup: resolveModule(resolveApp, 'src/setupTests'),
-    proxySetup: resolveApp('src/setupProxy.js'),
-    appNodeModules: resolveApp('node_modules'),
-    publicUrl: getPublicUrl(resolveApp('package.json')),
-    servedPath: getServedPath(resolveApp('package.json')),
-};
-`````
-借用 `paths` 模块我们可以直接在 `node_modules/react-scripts/config/webpack.config.js` 里面添加 `alias`：
-`````javascript
-//...
-const paths = require('./paths');
-//...
-module.exports = {
-    //...
-    resolve:{
-        //...
-        alias:{
-            '@':path.resolve(__dirname,paths.appSrc),
-            '@view':path.resolve(__dirname,paths.appSrc + '/view'),
-            '@components':path.resolve(__dirname,paths.appSrc + '/components'),
-            '@assets':path.resolve(__dirname,paths.appSrc + '/assets')
-        }
-    }
-}
-`````
-修改完配置之后再一次运行 `npm start` 就可以直接在 `react` 组件里面写 `import { Common } from '@component/Button'` 了;
-
 ### JSX
 JSX是⼀一种JavaScript的语法扩展, 其格式⽐比较像模版语⾔言, 但事实上完全是在 JavaScript 内部实现的;
 
@@ -380,7 +325,7 @@ export default function (props){
 
 第二个参数的数组里面可以添加依赖项, 表示依赖的变量变化的时候需要重新执行一次
 ````javascript
-...
+//...
 useEffect(()=>{
     const timer = setInterval(()=>{
         setDate(new Date());
@@ -388,7 +333,7 @@ useEffect(()=>{
     // 组件卸载的时候执行 return;
     return ()=> clearInterval(timer);
 },[counter])
-...
+//...
 ````
 
 #### 事件处理
@@ -432,7 +377,7 @@ react里遵循单向数据流, 没有双向绑定, 输⼊入框要设置 `value`
 事件回调函数注意绑定 `this` 指向, 常⻅见三种⽅方法:
 + 1. 构造函数中绑定并覆盖:
     ````javascript
-    ...
+    //...
     constructor(args){
         super(args);
         this.state = {
@@ -445,7 +390,7 @@ react里遵循单向数据流, 没有双向绑定, 输⼊入框要设置 `value`
             name:e.target.value
         })
     }
-    ...
+    //...
     ````
     或 `apply` 和 `bind`;
     ````javascript
@@ -457,9 +402,9 @@ react里遵循单向数据流, 没有双向绑定, 输⼊入框要设置 `value`
     submit = ()=>{
         console.log(this.state.name)
     }
-    ...
+    //...
     <button onClick={ this.submit }>按钮</button>
-    ...
+    //...
     ````
 + 3. 事件中定义直接写表达式:
     ````javascript
@@ -941,7 +886,7 @@ export default class ContextFun extends Component{
 
 ***App.js***
 ````javascript
-...
+//...
 render(){
     return(
         <Provider value={ store }>
@@ -1701,7 +1646,7 @@ export default store;
 ````
 引用的时候就需要使用 `state` 的某个具体属性了:
 ````javascript
-....
+//....
 export default connect(
     // mapStateToProps
     state => ({ counter : state.counter }),
@@ -1817,8 +1762,663 @@ export default class RouterPage extends Component {
 ````
 点击按钮, 每次 `state` 发生改变的时候, 如果是用的 `component` , `<Foo>` 组件就会每一次都执行 `componentDidMount` 和 `componentWillUnmount`; 这种情况下, 我们就可以使用 `render`;
 
+#### 独占路由 (404 页面)
+设定一个没有 `path` 的路由在路由列表最后面, 表示⼀一定匹配; 没有匹配到 `url` 的时候会进到 404 页面; 
+
+````javascript
+//... 
+<Switch>
+    {/* exact 为精准匹配, 如果不写就是模糊匹配, 这个时候会同时显示两个页面 */}
+    <Route exact path="/" component={ HomePage }/>
+    <Route path="/user"  component={ UserPage } />
+    <Route render={()=> <div> 404 Not Found</div>}/>
+</Switch>
+````
+> 需要注意的是这里的独占路由只能是放在路由的最后一个, 不然每一个路由都会第一个匹配到 404;
+
+#### 动态路由
+
+路由路径是匹配一个(或一部分) URL 的 一个字符串模式. 大部分的路由路径都可以直接按照字面量理解, 除了以下几个特殊的符号:
++ `:paramName`  匹配一段位于 `/`, `?` 或者是 `#` 之后的 URL, 匹配到的内容将会作为参数传递给组件;
++ `()`  括号内部的内容是可选的, 有或者没有都可以;
++ `*`   匹配任意字符, 直到到下一个字符或者整个 URL 的末尾, 并创建一个 `splat` 参数;
+
+````javascript
+<Route path="/hello/:name">         // 匹配 /hello/michael 和 /hello/ryan
+<Route path="/hello(/:name)">       // 匹配 /hello, /hello/michael 和 /hello/ryan
+<Route path="/files/*.*">           // 匹配 /files/hello.jpg 和 /files/path/to/hello.jpg
+````
+
+````javascript
+import React, { Component } from 'react';
+import {BrowserRouter,Link,Route, Switch} from 'react-router-dom';
+
+import HomePage from './HomePage';
+import UserPage from './UserPage';
+
+function Serch(props){
+    console.log(props);
+    // history  location  match
+    const { id } = props.match.params;
+    return(
+        <div>Serch 页面 + { id }</div>
+    )
+}
+
+export default class ReactRouterPage extends Component{
+    render() {
+        const id = 224;
+        return (
+            <BrowserRouter>
+                <Link to="/">首页</Link>
+                <Link to="/user">用户中心</Link>
+                <Link to={"/serch/" + id }>搜索</Link>
+                <Switch>
+                    <Route exact path="/" component={ HomePage }/>
+                    <Route path="/user"  component={ UserPage }/>
+                    <Route path="/serch/:id" component={ Serch }/>
+                    <Route render={()=> <div> 404 Not Found</div>}/>
+                </Switch>
+            </BrowserRouter>
+        );
+    }
+}
+````
+#### 路由嵌套
+`Route` 组件嵌套在其他页面组件中就产生了嵌套关系; 修改 `Search`, 添加详情;
+````javascript
+import React, { Component } from 'react';
+import {BrowserRouter,Link,Route, Switch} from 'react-router-dom';
+
+import HomePage from './HomePage';
+import UserPage from './UserPage';
+
+// Detail 作为 Serch 页面的子页面
+function Detail(props){
+    console.log("详情页面的props",props);
+    const { id } = props.match.params;
+    return(
+        <div>
+            <h2>这是 { id } 详情页面</h2>
+        </div>
+    )
+}
+
+function Serch(props){
+    console.log(props);
+    // history  location  match
+    const { id } = props.match.params;
+    return(
+        <div>
+            <h1>Serch 页面 + { id }</h1>
+            <Link to={"/serch/" + id + "/detail"}>{ id }的详情页</Link>
+            <Route path="/serch/:id/detail" component={ Detail }/>
+        </div>
+    )
+}
+
+export default class ReactRouterPage extends Component{
+    render() {
+        const id = 224;
+        return (
+            <BrowserRouter>
+                <Link to="/">首页</Link>
+                <Link to="/user">用户中心</Link>
+                <Link to={"/serch/" + id }>搜索</Link>
+                <Switch>
+                    <Route exact path="/" component={ HomePage }/>
+                    <Route path="/user"  component={ UserPage }/>
+                    <Route path="/serch/:id" component={ Serch }/>
+                    <Route render={()=> <div> 404 Not Found</div>}/>
+                </Switch>
+            </BrowserRouter>
+        );
+    }
+}
+````
+#### 路由守卫
+思路: 创建高阶组件包装 `Route` 使其具有权限判断功能;
+
+创建一个 `PrivatePage` 来包装一下 `Route`, 用 `redux` 存储用户的在线状态;
+
+***store.js***
+````javascript
+import { createStore, combineReducers } from 'redux';
+// 模拟一个用户的状态
+const initLogin = {
+    isLogin:false,
+    user:{
+        name:""
+    }
+}
+function userReducer(state = {...initLogin},action){
+    switch(action.type){
+        case "success":
+            return {
+                isLogin:true,
+                user:{
+                    name:"张三"
+                }
+            }
+        default:
+            return state;
+    }
+}
+const store = createStore(combineReducers(
+    {
+        user:userReducer
+    }
+));
+
+export default store;
+````
+
+***PrivatePage.js***
+````javascript
+import React, { Component } from 'react';
+import { Route, Redirect } from 'react-router-dom';
+import { connect } from 'react-redux';
+
+class PrivatePage extends Component{
+    render(){
+        const {isLogin, path , component} = this.props;
+        if(isLogin){
+            return <Route path={ path } component = { component }/>
+        }else{
+            // 在路由的 state 上扩展一个参数, 如果登录成功之后就回到登录之前的页面上去;
+            return (
+                <Redirect to={{
+                    pathname:"/login",
+                    state:{
+                        redirect:path
+                    }
+                }}/>
+            )
+        }
+    }
+}
+
+export default connect(
+    state => ({isLogin:state.user.isLogin})
+)(PrivatePage);
+````
+***Login.js***
+````javascript
+// 登录页面
+import React, { Component } from 'react';
+import { Redirect } from 'react-router-dom';
+import { connect } from 'react-redux';
+
+class Login extends Component{
+    render(){
+        const {isLogin, location , login} = this.props;
+        // 拿到 PrivatePage 上给路由扩展的参数, 点击登录 登录成功之后需要重定向到登录之前的页面;
+        const { redirect = '/' } = location.state || {};
+        if(isLogin){
+            return <Redirect to={ redirect }/>
+        }else{
+            return( 
+                <div>
+                    <h3>Login Page</h3>
+                    <button onClick={ login }>登录</button>
+                </div>
+            )
+        }
+    }
+}
+
+export default connect(
+    state => ({isLogin:state.user.isLogin}),
+    {
+        login:()=>({type:"success"})
+    }
+)(Login);
+````
+
+***RouterPage.js***
+````javascript
+//...
+<Switch>
+    <Route exact path="/" component={ HomePage }/>
+    <PrivatePage path="/user"  component={ UserPage }/>
+    <Route path="/login" component={Login}/>
+    <Route render={()=> <div> 404 Not Found</div>}/>
+</Switch>
+````
+[Router 原理](/docs/Web/React/res/router-origin.md);
+
+### redux-saga 
+`redux-saga` 是一个用于管理应用程序 `SideEffect`(副作用，例如异步获取数据，访问浏览器缓存等) 的 library, 它的目标是让副作用管理更容易, 执行更高效, 测试更简单, 在处理故障时更容易; 与 `redux-thunk` 的功能有点相同;
+
+[Redux Saga中文文档](https://redux-saga-in-chinese.js.org/)
+
+#### `redux-thunk` 方式写异步操作:
+
+***App.js***
+```javascript
+import React from 'react';
+import './index.css';
+import { Provider } from 'react-redux';
+import store from './store';
+import { BrowserRouter,Link,Switch,Route } from 'react-router-dom';  
+import HomePage from './pages/HomePage';
+import PrivatePage from './pages/PrivatePage';
+import LoginPage from './pages/LoginPage';
+import UserPage from './pages/UserPage';
+
+function App() {
+    return (
+        <Provider store={ store }>
+            <BrowserRouter>
+                <Link to="/">首页</Link>&nbsp;&nbsp;&nbsp;&nbsp;
+                <Link to="/user">用户中心</Link>&nbsp;&nbsp;&nbsp;&nbsp;
+                <Link to="/login">登录</Link>&nbsp;&nbsp;&nbsp;&nbsp;
+
+                <Switch>
+                    <Route exact path="/" component={ HomePage }/>
+                    <PrivatePage path="/user" component={ LoginPage }/>
+                    {/* <Route path="/user" component={ UserPage }/> */}
+                    <Route path="/login" component={ LoginPage }/>
+                    <Route render={()=><h2>404 Not Found</h2>}/>
+                </Switch>
+            </BrowserRouter>
+        </Provider>
+    );
+}
+
+export default App;
+```
+***PrivatePage.js***
+```javascript
+import React, { Component } from 'react';
+import { Route , Redirect} from 'react-router-dom';
+import { connect } from 'react-redux';
 
 
+class PrivatePage extends Component{
+    render(){
+        const { isLogin , path , component } = this.props;
+        console.log(this.props)
+        if(isLogin){
+            return <Route path={ path } component= { component }/>
+        }else{
+            return (
+                <Redirect to={{
+                    pathname:'/login',
+                    state:{
+                        redirect:path
+                    }
+                }}/>
+            )
+        }
+    }
+}
+export default connect(
+    state=> ({isLogin:state.isLogin})
+)(PrivatePage)
+```
+***LoginPage.js***
+```javascript
+import React, { Component } from 'react';
+import { Redirect } from 'react-router-dom';
+import { connect } from 'react-redux';
+import { Button } from 'antd';
+ 
+class LoginPage extends Component{
+    render(){
+        const { isLogin , location , login , loading} = this.props;
+        const { redirect = '/' } = location.state || {};
+
+        if(isLogin){
+            return <Redirect to={ redirect }/>
+        }else{
+            return (
+                <div>
+                    <h3>请登录</h3>
+                    <Button type="primary" onClick={ login }>{ loading ? "loading..." : "点击登录" }</Button>
+                </div>
+            )
+        }
+    }
+}
+
+export default connect(
+    state=>({isLogin:state.isLogin,loading:state.loading}),
+    {
+        login:()=> dispatch =>{
+            // 登录的时候先让 loading 为 true;
+            dispatch({type:"loginRequest"});
+            // 模拟ajax异步操作
+            setTimeout(() => {
+                dispatch({type:"loginSuccess"})
+            }, 1000);
+        }
+    }
+)(LoginPage)
+```
+
+***store.js***
+```javascript
+import { createStore, applyMiddleware } from 'redux';
+import thunk from 'redux-thunk';
+
+const loginInfo = {
+    isLogin: false,
+    loading: false,
+    userName: ''
+}
+
+function loginReducer(state = { ...loginInfo },action) {
+    //console.log("action", action.payload);
+    switch (action.type) {
+        case "loginRequest":
+            return {
+                ...state, 
+                ...loginInfo, 
+                loading:true
+            };
+        case "loginSuccess":
+            return {
+                ...state, isLogin: true,
+                loading: false, 
+                ...action.payload
+            };
+        case "loginFailure":
+            return {
+                ...state, 
+                ...loginInfo,
+                ...action.payload
+            };
+        default:
+            return state;
+    }
+}
+const store = createStore(loginReducer, applyMiddleware(thunk));
+
+export default store;
+```
+
+#### redux-saga 模拟异步操作
+
+安装:
+````bash
+yarn add redux-saga
+````
+用 saga 处理一个用户请求:
++ `call` : 调用异步操作;
++ `put`  : 状态更新;
++ `takeEvery`: 做 saga 监听;
+
+创建一个 Saga.js 文件;
+
+***Saga.js***
+```javascript
+import { call, put, takeEvery } from 'redux-saga/effects';
+
+// 模拟异步登录操作
+const UserService = {
+    login(userName) {
+        return new Promise((resolve, reject) => {
+            setTimeout(() => {
+                if (userName === "小明") {
+                    resolve({ userName: "小明" });
+                } else {
+                    reject({ err: "用户名或密码错误" });
+                }
+            }, 1000);
+        });
+    }
+}
+
+// worker saga
+function* loginHandle(action) {
+    yield put({
+        type:"loginRequest"
+    })
+    try {
+        // 调用登录
+        const res = yield call(UserService.login,action.payload);
+        // 拿到调用结果后更新页面
+        yield put({
+            type:"loginSuccess",
+            payload:{...res}
+        })
+        console.log("Login-success")
+    } catch (err) {
+        yield put({
+            type:"loginFailure",
+            payload:err
+        })
+        console.log("Login-error")
+    }
+}
+
+// watcher saga
+function* MySaga(){
+    yield takeEvery("login",loginHandle);
+}
+
+export default MySaga;
+```
+
+***store.js***
+```javascript
+import { createStore, applyMiddleware } from 'redux';
+import createSagaMiddleware from 'redux-saga';
+import MySaga from '../components/Saga';
+
+const SagaMiddleware = createSagaMiddleware();
+
+const loginInfo = {
+    isLogin: false,
+    loading: false,
+    userName: ''
+}
+
+function loginReducer(state = { ...loginInfo },action) {
+    //console.log("action", action.payload);
+    switch (action.type) {
+        case "loginRequest":
+            return {
+                ...state, 
+                ...loginInfo, 
+                loading:true
+            };
+        case "loginSuccess":
+            return {
+                ...state, isLogin: true,
+                loading: false, 
+                ...action.payload
+            };
+        case "loginFailure":
+            return {
+                ...state, 
+                ...loginInfo,
+                ...action.payload
+            };
+        default:
+            return state;
+    }
+}
+
+const store = createStore(loginReducer, applyMiddleware(SagaMiddleware));
+
+SagaMiddleware.run(MySaga);
+
+export default store;
+```
+使用 saga 里面注册的事件监听:
+***LoginPage.js***
+```javascript
+import React, { Component } from 'react';
+import { Redirect } from 'react-router-dom';
+import { connect } from 'react-redux';
+import { Button } from 'antd';
+ 
+class LoginPage extends Component{
+    render(){
+        const { isLogin , location , login , loading} = this.props;
+        const { redirect = '/' } = location.state || {};
+
+        if(isLogin){
+            return <Redirect to={ redirect }/>
+        }else{
+            return (
+                <div>
+                    <h3>请登录</h3>
+                    <Button type="primary" onClick={ login }>{ loading ? "loading..." : "点击登录" }</Button>
+                </div>
+            )
+        }
+    }
+}
+
+export default connect(
+    state=>({isLogin:state.isLogin,loading:state.loading}),
+    {
+        // 这里的 login 是在 saga 里面 takeEvery 监听的;
+        login:()=>({type:"login",payload:"小明"})
+    }
+)(LoginPage)
+```
+`redux-saga ` 使用了 ES6 的 `Generator` 功能, 让异步的流程更易于读取, 写入和测试;  通过这样的方式, 这些异步的流程看起来就像是标准同步的 Javascript 代码;
+
+不同于 `redux thunk` 不会再遇到回调地狱了, 可以很容易地测试异步流程并保持 `action` 是干净的;
 
 
+### Umi
+中文可发音为乌米, 是一个可插拔的企业级 react 应用框架; [Umi 中文文档](https://umijs.org/zh-CN)
+
+#### 与 dva, roadhog 的关系
++ `roadhog` 是基于 `webpack` 的封装工具,目的是简化 `webpack` 的配置;
++ `umi` 可以简单地理解为 `roadhog` + 路由, 思路类似 `next.js/nuxt.js`, 辅以一套插件机制, 目的是通过框架的方式简化 `React` 开发;
++ `dva` 目前是纯粹的数据流, 和 `umi` 以及 `roadhog` 之间并没有相互的依赖关系, 可以分开使用也可以一起使用;
+
+#### dva 
+[dva 中文文档](https://dvajs.com/api/)
+
+[dva 知识中文地图](https://dvajs.com/knowledgemap/#jsx)
+
+`dva` 首先是一个基于 `redux` 和 `redux-saga` 的数据流方案, 然后为了简化开发体验, `dva` 还额外内置了 `react-router` 和 `fetch`, 所以也可以理解为一个轻量级的应用框架;
+
+![dva 数据流](./res/dva.png)
+
+#### dva + umi 的约定
++ src 源码
+    + pages 页面
+    + components 组件
+    + layout 布局
++ model 存储数据
++ config 配置
++ mock 开发环境测试数据
+
+![umi与dva约定](./res/umi.png)
+
+1. `Page` 负责与用户直接打交道: 渲染页面, 接收用户的操作输入, 侧重于展示, 操作逻辑;
+2. `Model` 负责业务逻辑处理, 为 `Page` 做数据, 状态的读写变换, 存储等;
+3. `Service` 负责与 http 接口对接;
+
+`dva` 是基于 `redux`、`redux-saga` 和 `react-router` 的轻量级前端框架及最佳实践沉淀, 核心 api 如下:
+1. `model`
+    + state 状态
+    + action
+    + dispatch
+    + reducer
+    + effect
+2. `subscriptions` 订阅
+3. `router` 路由
+    + `namespace` Model的命名空间, 只能用字符串, 一个大型的应用有多个 Model, 通过 namespace 区分;
+    + `reduecer` 用于修改 state, 由 action 触发, reducer 是一个纯函数, 它接收当前的 state 和一个 action 对象, action 里包含数据体 (payload) 作为参数传递, 返回一个新的 state;
+    + `effects` 用于做异步操作处理 (例如: 与服务端交互), 也是由 action 触发, 但是不可以修改 state, 需要通过触发 action 调用 reducer 去操作 state;
+    + `action` 是 reducer 和 effects 的触发器, 一般是一个形象 `({payload:todo,type:'add'})`, 通过 type 属性可以匹配到某个 reducer;
+
+
+#### 安装
+````bash
+# 新建一个空的文件夹
+mkdir umi-project
+cd umi-project
+
+# 创建 umi 项目
+yarn create umi
+# 选择 antd-design-pro
+# 选择 JavaScript
+
+# 安装依赖
+yarn 
+
+# 启动
+yarn dev
+````
+##### umi 的基本使用
+创建页面:
+````bash
+# 表示在  page 目录下面新建一个 about.js 的页面;
+umi g page about
+````
+创建文件夹:
+````bash
+# 在 page 目录下面新建一个文件夹 channel 并新建文件 index.js
+umi g page channel/index
+````
+umi 默认使用的是 `.css` 文件, 如果我们想使用 `less`, 只需要创建的时候加参数;
+````bash
+# 使用 less 作为页面的样式文件
+umi g page channel/index --less
+```` 
+
+### 扩展 create-react-app
+
+`create-react-app` 官方推荐的工具是讲一些复杂的 `webpack` 配置封装了起来, 让开发者不用再关心这些工具的具体配置, 从而降低了工具的使用难度;
+
+但是对于熟悉`webpack` 的开发者, 并且想要定制化 `webpack` 配置, 适应自己的开发环境, 这个时候我们就需要使用一些其他的方法去修改配置了; 因为 `create-react-app` `webpack` 的配置是没有暴露在外面的;
+
+#### 配置 alias
+
+很多时候我们开发项目的时候都会把项目目录划分成多个文件夹, 每个文件夹下面又分为多个不同功能的模块子文件夹, 这个时候, 如果组件里面需要引入外层的公用的组件, 那我们得这么写:
+`````javascript
+import { Common } from '../../../src/common';
+`````
+而且, 目录层次越多, 后面的文件查找越复杂, 那么我们就可以通过去修改 `webpack` 的 `resolve` 里面的 `alias` 别名, 为我们制定文件目录别名;
+
+`create-react-app`会安装一个 `react-scripts`的依赖包, 我们可以打开 `node_modules/react-scripts/config/webpack.config.js` 这里才是 `webpack` 的配置部分, `react-scripts` 里面对 `path` 进行了封装, `node_modules/react-scripts/config/paths.js`:
+`````javascript
+module.exports = {
+    dotenv: resolveApp('.env'),
+    appPath: resolveApp('.'),
+    appBuild: resolveApp('build'),
+    appPublic: resolveApp('public'),
+    appHtml: resolveApp('public/index.html'),
+    appIndexJs: resolveModule(resolveApp, 'src/index'),
+    appPackageJson: resolveApp('package.json'),
+    appSrc: resolveApp('src'),
+    appTsConfig: resolveApp('tsconfig.json'),
+    appJsConfig: resolveApp('jsconfig.json'),
+    yarnLockFile: resolveApp('yarn.lock'),
+    testsSetup: resolveModule(resolveApp, 'src/setupTests'),
+    proxySetup: resolveApp('src/setupProxy.js'),
+    appNodeModules: resolveApp('node_modules'),
+    publicUrl: getPublicUrl(resolveApp('package.json')),
+    servedPath: getServedPath(resolveApp('package.json')),
+};
+`````
+借用 `paths` 模块我们可以直接在 `node_modules/react-scripts/config/webpack.config.js` 里面添加 `alias`：
+`````javascript
+//...
+const paths = require('./paths');
+//...
+module.exports = {
+    //...
+    resolve:{
+        //...
+        alias:{
+            '@':path.resolve(__dirname,paths.appSrc),
+            '@view':path.resolve(__dirname,paths.appSrc + '/view'),
+            '@components':path.resolve(__dirname,paths.appSrc + '/components'),
+            '@assets':path.resolve(__dirname,paths.appSrc + '/assets')
+        }
+    }
+}
+`````
+修改完配置之后再一次运行 `npm start` 就可以直接在 `react` 组件里面写 `import { Common } from '@component/Button'` 了;
 

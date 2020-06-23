@@ -653,4 +653,218 @@ npm install mysql2 sequelize -S
 
 })()
 ````
+### Mongodb 数据持久化
+
+
+#### Mongodb 安装配置
++ [下载安装](https://www.runoob.com/mongodb/mongodb-window-install.html);
++ 配置环境变量; 我的电脑 --> 属性 --> 高级系统设置 --> 环境变量 --> 将 MongoDB 的安装目录下面的 bin 添加到 path
++ 创建 dbpath:
+
+    在命令行中输入:
+    ````bash
+    mongod.exe --dbpath E:\MongoDB\data\db;  
+    ````
+    `E:\MongoDB\data\db` 代表的是存放数据的位置, 需要先进行这一步操作之后才能运行 mongod;
++ 在终端中执行 mongod 并保持终端是运行状态;
+    ```bash
+    mongod
+    ```
++ 再新打开一个终端执行 mongo
+    ```bash
+    mongo
+
+    # 测试
+    show dbs
+    # admin   0.000GB
+    # config  0.000GB
+    # local   0.000GB
+    ```
+
+#### Mongodb 原生驱动
+
+安装 MongoDB:
+
+```bash
+npm install mongodb --save
+```
+node 连接 mongodb:
+```javascript
+(async ()=>{
+    const { MongoClient:MongoDB } = require('mongodb');
+
+    // 初始化客户端
+    const client = new MongoDB(
+        'mongodb://localhost:27017',
+        {
+            // 这个属性会在 url 里面识别验证用户所需要的db;
+            userNewUrlParser: true
+        }
+    )
+
+    // 创建连接
+    let ret = await client.connect()
+
+    // 创建数据库
+    const db = client.db("test");
+    
+    // 创建表(添加文档) 创建一个 fruits 的集合
+    const fruits = db.collection('fruits');
+
+    // 插入一条数据
+    ret = await fruits.insertOne({
+        name:"芒果",
+        price:10.87
+    })
+    console.log("插入成功~",JSON.stringify(ret));
+
+    // 查询数据
+    ret = await fruits.findOne();           // 默认查询第一条
+    ret = await fruits.find().toArray();    // 查询所有;
+    console.log("查询成功~",JSON.stringify(ret));
+
+    
+    // 修改数据  默认只修改第一条  $set 操作符
+    ret = await fruits.updateOne({name:"apple"},{
+        $set:{
+            price:12.76
+        }
+    })
+    console.log("修改成功~",JSON.stringify(ret));
+
+    // 删除数据 (删除所有数据)
+    await fruits.deleteMany();
+
+    // 关闭连接
+    client.close();
+})()
+```
+##### Mongodb 异步编程
+用事件发布订阅的方式实现一个异步操作 Mongodb 的案例;
+
+新建一个 `db.js` 封装 db 操作, 当连接成功的时候发布一个消息;
+
+***db.js***
+```javascript
+const conf = {
+    url:"mongodb://localhost:27017",
+    dbName:"test"
+}
+// 用事件发布订阅实现异步编程;
+const Eventemiter = require("events").EventEmitter;
+
+// Mongo 客户端
+const { MongoClient } = require("mongodb");
+
+class Mongodb{
+    constructor(conf){
+        this.conf = conf;
+        this.emiter = new Eventemiter();
+        // 连接 mongodb
+        this.client = new MongoClient(conf.url,{
+            userNewUrlParser: true
+        })
+        this.client.connect(err =>{
+            if(err) throw err;
+            console.log("连接成功~");
+            this.emiter.emit("connect");
+        })
+    }
+
+    once(event,cb){
+        this.emiter.once(event,cb);
+    }
+
+    // collection 连接成功
+    col(colName,dbName = conf.dbName){
+        return this.client.db(dbName).collection(colName);
+    }
+}
+
+module.exports = new Mongodb(conf);
+```
+***initDB.js***
+```javascript
+const mongodb = require('./db');
+
+// 订阅一个 connect 消息, 当建立连接成功的时候, 就往数据库里面插入 100 条数据;
+mongodb.once("connect", async ()=>{
+    const col = mongodb.col("fruits");
+    // 删除所有数据
+    await col.deleteMany();
+
+    // 生成100条水果数据
+    const data = new Array(100).fill().map((v,i)=>{
+        return {
+            name:["banner","apple","vegetable","watermelon"][Math.floor(Math.random() * (3 + 1))],
+            price:i,
+            category:Math.random() > 0.5 ? "蔬菜" : "水果"
+        }
+    })
+
+    await col.insertMany(data);
+    console.log("插入成功~");
+})
+```
+#### ODM - Mongoose
+[Mongoose 在线文档](https://mongoosejs.com/docs/guide.html)
+
+[Mongoose 中文文档](http://www.mongoosejs.net/docs/guide.html)
+
+`Mongoose` 是在 `node.js` 异步环境下对 `mongodb` 进行便捷操作的对象模型工具;
+
+安装:
+```bash
+npm install mongoose -S
+```
+
+##### 基本使用
+
+```javascript
+const mongoose = require('mongoose');
+mongoose.connect("mongodb://127.0.0.1:27017/test",{useNewUrlParser: true,useUnifiedTopology: true})
+
+const conn = mongoose.connection;
+
+conn.on("error",()=> console.log("连接失败~"));
+// 连接成功时，回调函数会被调用
+conn.once("open",async ()=>{
+    console.log("连接成功~");
+    // 定义模型(定义表结构)
+    const Schema = mongoose.Schema({
+        category:String,
+        name:String
+    })
+
+    // 建立模型  它对应数据库中复数、小写的Collection
+    const Model = mongoose.model("fruits",Schema);
+
+    // create 返回 Promise 创建模型并插入数据
+    let ret = await Model.create({
+        category:"温带水果",
+        name:"苹果",
+        price:10
+    })
+
+    // 查询数据 find 返回 Query, 它实现了then 和 catch 可以当Promise使用  如果需要返回Promise, 调⽤用其exec();
+    ret = await Model.find({name:"苹果"})
+
+    // 更新, updateOne 返回 Query
+    ret = await Model.updateOne({name:"苹果"},{
+        $set:{
+            name:"芒果~"
+        }
+    })
+
+    // 删除数据  deleteOne 返回 Query
+    ret = await Model.deleteOne({name:"苹果"});
+    console.log(ret);
+})
+```
+> [零编码实现 `restful` 系统](/res/Mongodb数据持久化/restful);
+
+### 鉴权
+
+
+
 
