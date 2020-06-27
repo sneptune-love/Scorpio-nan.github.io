@@ -627,7 +627,16 @@ $ git clone --branch=dev http://git.nbet-group.com dev --depth=1
 `````
 `git clone` 命令, `url` 后面如果添加名称的话, 那克隆下来的文件夹名称就是命令行添加的名称, 如果不加则以克隆下来的项目名命名文件夹;
 
-
-
+##### Git 强制覆盖本地代码
+Git 强制覆盖:
+````bash
+git fetch --all                     #  拉取所有更新，不同步
+git reset --hard origin/master      #  本地代码同步线上最新版本(会覆盖本地所有与远程仓库上同名的文件)
+git pull                            #  更新一次（其实也可以不用，第二步命令做过了其实）
+````
+git强制覆盖本地命令(单条执行):
+````bash
+git fetch --all && git reset --hard origin/master && git pull
+````
 
 

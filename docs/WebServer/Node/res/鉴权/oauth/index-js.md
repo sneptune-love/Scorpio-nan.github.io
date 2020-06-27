@@ -1,3 +1,4 @@
+````javascript
 const Koa = require('koa')
 const router = require('koa-router')()
 const static = require('koa-static')
@@ -65,3 +66,4 @@ router.get('/auth/github/userinfo', jwtAuth({
 app.use(router.routes()); /*启动路由*/
 app.use(router.allowedMethods());
 app.listen(7001);
+````

@@ -865,6 +865,394 @@ conn.once("open",async ()=>{
 
 ### 鉴权
 
+#### session-cookie 
+`cookie` 原理:
++ Header Set-cookie 负责设置 cookie;
++ 请求头里面携带 cookie
+
+````javascript
+const http = require('http');
+
+http.createServer((req,res)=>{
+    if(req.url == '/favicon.ico') {
+        res.end('');
+        return;
+    }
+    // 查看 cookie 是否存在
+    console.log("cookie",req.headers.cookie);
+    res.setHeader("Set-Cookie","cookie1=abc");
+    res.end('');
+    
+}).listen(3001)
+````
+通过 `response` 的 `setHeader` 方法, 在 http 的请求头里面设置 `cookie`; 但是这种方法有一个弊端就是, 如果我们将铭文存储在 `cookie` 里面, 就会被直接暴露在浏览器里面, 任何人都是可见的, 为了避免这种情况, 通常我们只需要在浏览器的 `cookie` 中存一个键, 而服务器端存储这个键的值, 鉴权的时候只需要拿 `cookie` 里面键, 去查找服务端存储的对应的值; 这也就是 `session` 与 `cookie` 的关系;
+
+`session` 原理:
+````javascript
+const http = require('http');
+const session = {};
+
+http.createServer((req,res)=>{
+    if(req.url == '/favicon.ico') {
+        res.end('');
+        return;
+    }
+    // 查看 cookie 是否存在
+    console.log("cookie",req.headers.cookie);
+    const sessionKey = 'sid';
+    const cookie = req.headers.cookie;
+
+    if(cookie && cookie.indexOf(sessionKey) > -1){
+        res.end("欢迎回来~");
+
+        const parten = new RegExp(`${sessionKey}=([^;]+);?\s*`);
+        const sid = parten.exec(cookie)[1];
+
+        console.log("session:",sid,session,session[sid]);
+    }else{
+        const sid = (Math.random()* 999999).toFixed();
+        
+        res.setHeader("Set-Cookie",`${sessionKey}=${sid}`);
+        session[sid] = {
+            name:"laowang"
+        }
+        res.end('Hello');
+    }
+
+}).listen(3001)
+````
+可以看到 `session` 的原理:
++ 1. 服务端在接受客户端首次访问的时候在服务端创建 `session`, 然后保存 `session`(通常都是存在 redis 里面), 然后给 `session` 生成一个唯一的标识字符串, 在响应头中写下字符串;
++ 2. 签名, 这一步通过秘钥对 sid 进行签名处理, 避免客户端修改 sid(非必须);
++ 3. 浏览器中收到请求响应的时候, 会解析响应头, 然后将 sid 存储在 cookie 中, 浏览器在下次 http 请求的请求头中会带上 cookie 信息;
++ 4. 服务器在接受客户端请求时会去解析请求头 cookie 中的 sid, 然后根据 sid 去找服务器中保存该客户端的 session, 从而判断请求是否合法;
+
+#### Koa-session
+koa 中的 session 使用:
+````bash
+npm install koa-session
+````
+````javascript
+const Koa = require('koa');
+const app = new Koa();
+const session = require('koa-session');
+
+// 加密算法的秘钥, 存储在后端, 只有后端才能鉴别 session 的签名是否和铭文是否是一组;
+app.keys = ['setting secrect']
+
+// 配置项
+const SESS_CONFIG = {
+    key:"hope:sess",        // cookie 的键名
+    maxAge:86400000,        // 有效期, 默认为一天
+    httpOnly:true,          // 仅服务器才能修改
+    signed:false            // 签名(hash 算法)
+}
+
+// 注册session
+app.use(session(SESS_CONFIG,app));
+
+app.use(async (ctx,next)=>{
+    if(ctx.path == '/favicon.ico') return;
+
+    // 获取
+    let n = ctx.session.count || 0;
+
+    // 设置
+    ctx.session.count = ++n;
+    ctx.body = "第" + n + '次访问~';
+})
+
+app.listen(3001);
+````
+这种方式有效的防止了客户端对 cookie 的篡改, 但是有一点弊端是通常 node 服务可能会有多个, 这种做法是没办法在多个服务中共享 session; 所有通常情况下, 会将 session 存储在 radis 里面;
+
+#### redis 存储 session
+[redis 安装](https://github.com/tporadowski/redis/releases)
+
+node 驱动安装:
+````bash
+# 将 redis 操作变成 promise 的方式调用
+npm install co-redis
+
+npm install redis
+npm install koa-redis
+````
+普通使用:
+````javascript
+const redis = require('redis');
+const client = redis.createClient(6379,"localhost");
+
+// 设置
+client.set("hello","This is a value");
+
+// 读取
+client.get("hello",function(err,res){
+    if(err){
+        console.log("error");
+    }else{
+        console.log(res);
+    }
+})
+````
+Koa-redis 使用:
+````javascript
+const Koa = require('koa');
+const app = new Koa();
+const session = require('koa-session');
+
+const redisStore = require('koa-redis');
+const redis = require('redis');
+const redisClient = redis.createClient(6379,"localhost");
+
+// redis promise 库
+const warpper = require('co-redis');
+const client = warpper(redisClient);
+
+// 加密算法的秘钥, 存储在后端, 只有后端才能鉴别 session 的签名是否和铭文是一组;
+app.keys = ['setting secrect']
+
+// 配置项
+const SESS_CONFIG = {
+    key:"hope:sess",        // cookie 的键名
+    maxAge:86400000,        // 有效期, 默认为一天
+    httpOnly:true,          // 仅服务器才能修改
+    signed:false,           // 签名(hash 算法)
+    store:redisStore({
+        client:client
+    })
+}
+
+// 注册session
+app.use(session(SESS_CONFIG,app));
+
+// 观察 redis 的状态
+app.use(async (ctx,next)=>{
+    const keys = await client.keys("*");
+    keys.forEach(async key => {
+        console.log(await client.get(key));
+    });
+    await next();
+})
+
+app.use(async (ctx,next)=>{
+    if(ctx.path == '/favicon.ico') return;
+
+    // 获取
+    let n = ctx.session.count || 0;
+
+    // 设置
+    ctx.session.count = ++n;
+    ctx.body = "第" + n + '次访问~';
+})
+
+app.listen(3001);
+````
+#### Token 验证
+session 的不足: 
++ 服务器有状态, 需要将 session 记录到服务端, 不利于分布式部署; 
++ session 依赖于浏览器, 如果应用是 app 就会有一些问题;
+
+Token 原理:
++ 1. 客户端使⽤用户名跟密码请求登录;
++ 2. 服务端收到请求, 去验证用户名和密码;
++ 3. 验证成功之后, 服务端会签发一个令牌(Token), 再把这个 Token 发送给客户端;
++ 4. 客户端收到 Token 之后可以把它缓存起来(放在 cookie 或者是 localStorage 里面);
++ 5. 客户端每次向服务器发送请求的时候, 都需要带着服务端签发的 Token;
++ 6. 服务端收到请求之后, 去验证客户端里面携带的 Token, 验证成功之后就向客户端返回信息;
+
+安装依赖:
+````bash
+npm install koa-router jsonwebtoken koa-jwt koa2-cors koa-bodyparser koa-static
+````
+***server.js***
+````javascript
+const Koa = require('koa');
+const router = require('koa-router')();
+
+// 生成 token 用的
+const jwt = require('jsonwebtoken');
+const jwtAuth = require('koa-jwt');
+// 密钥, 即使前台的用户信息被篡改的话, 没有这个密钥是解不出来加密铭文的;
+const secret = "this is a secret";
+const cors = require('koa2-cors');
+const bodyparser = require('koa-bodyparser');
+const static = require('koa-static');
+
+const app = new Koa();
+app.keys = ['some secret'];
+
+app.use(static(__dirname + '/'));
+app.use(bodyparser());
+
+router.post('/users/login-token',async ctx =>{
+    const { body } = ctx.request;
+    //... 数据库操作 这里的 userId 是模拟数据库查出来的, 真实情况下 userId 应该是存放在数据库里;
+    const userId = body.username;
+    // 设置token
+    ctx.body = {
+        message:"登录成功~",
+        user:userId,
+        token:jwt.sign({
+            data:userId,
+            // 设置有效期 一小时之后
+            exp:Math.floor(Date.now() / 1000) + 60 * 60,
+        // 生成token的密钥
+        },secret)
+    }
+})
+
+// jwtAuth 中间件先鉴权之后再走到下一个模块, 如果鉴权不通过, 就会直接向前台返回一个 401 Unauthorized;
+router.get('/users/getuser-token',jwtAuth({
+    secret
+}), async ctx =>{
+    console.log(ctx.state);
+    ctx.body = {
+        message:"获取数据成功~",
+        userinfo: ctx.state.user.data
+    }
+})
+
+app.use(router.routes());
+app.listen(3002);
+````
+***client.html***
+````html
+<html>
+<head>
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js">
+    </script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+</head>
+<body>
+    <div id="app">
+        <div>
+            <input v-model="username" />
+            <input v-model="password" />
+        </div>
+        <div>
+            <button v-on:click="login">Login</button>
+            <button v-on:click="logout">Logout</button>
+            <button v-on:click="getUser">GetUser</button>
+        </div>
+        <div>
+            <button @click="logs=[]">Clear Log</button>
+        </div>
+        <!-- ⽇日志 -->
+        <ul>
+            <li v-for="(log,idx) in logs" :key="idx">
+                {{ log }}
+            </li>
+        </ul>
+    </div>
+    <script>
+        axios.interceptors.request.use(
+            config => {
+                const token = window.localStorage.getItem("token");
+                if (token) {
+                    // 判断是否存在token，如果存在的话，则每个http header都加上token
+                    // Bearer是JWT的认证头部信息
+                    config.headers.common["Authorization"] = "Bearer " + token;
+                }
+                return config;
+            },
+            err => {
+                return Promise.reject(err);
+            }
+        );
+        axios.interceptors.response.use(
+            response => {
+                app.logs.push(JSON.stringify(response.data));
+                return response;
+            },
+            err => {
+                app.logs.push(JSON.stringify(response.data));
+                return Promise.reject(err);
+            }
+        );
+        var app = new Vue({
+            el: "#app",
+            data: {
+                username: "test",
+                password: "test",
+                logs: []
+            },
+            methods: {
+                login: async function () {
+                    const res = await axios.post("/users/login-token", {
+                        username: this.username,
+                        password: this.password
+                    });
+                    localStorage.setItem("token", res.data.token);
+                },
+                logout: async function () {
+                    localStorage.removeItem("token");
+                },
+                getUser: async function () {
+                    await axios.get("/users/getuser-token");
+                }
+            }
+        });
+    </script>
+</body>
+</html>
+````
+#### JWT (json web token) 原理
+[JSON Web Token 中文文档](http://www.ruanyifeng.com/blog/2018/07/json_web_token-tutorial.html)
+
+1. Bearer Token 包含三个组成部分: 令牌头、payload、哈希;
+
+```json
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.
+eyJkYXRhIjoidGVzdCIsImV4cCI6MTU5MzIzNzEyMSwiaWF0IjoxNTkzMjMzNTIxfQ.
+iELaYYzMLZDYq-lPRErNQwd6Ri-ElO-tYLsNSeZOn44
+```
+
+```javascript
+// jsonwebtoken.js
+const jsonwebtoken = require('jsonwebtoken')
+const secret = '12345678'
+const opt = {
+    secret: 'jwt_secret',
+    key: 'user'
+}
+const user = {
+    username: 'abc',
+    password: '111111'
+}
+const token = jsonwebtoken.sign({
+    data: user,
+    // 设置 token 过期时间
+    exp: Math.floor(Date.now() / 1000) + (60 * 60),
+}, secret)
+
+console.log('⽣生成token:' + token)
+// ⽣生成 token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJkYXRhIjp7InVzZXJuYW1lIjoiYWJjIiwicGFzc3dvcmQiOiIxMTExMTEifSwiZXhwIjoxNTQ2OTQyMzk1LCJpYXQiOjE1NDY5Mzg3OTV9.VPBCQgLB7XPBq3RdHK9WQMkPp3dw65JzEKm_LZZjP9Y
+
+console.log('解码:', jsonwebtoken.verify(token, secret, opt))
+// 解码: { data: { username: 'abc', password: '111111' },exp: 1546942395,iat: 1546938795 }
+```
+#### OAuth (开放授权)
+
+三方登入主要基于 `OAuth 2.0` OAuth 协议为用户资源的授权提供了一个安全的、开放而又简易的标准. 与以往的授权方式不同之处是 `OAUTH` 的授权不会使第三方触及到用户的帐号信息
+(如用户名与密码) , 即第三方无需使⽤用户的用户名与密码就可以申请获得该用户资源的授权, 因此 `OAUTH` 是安全的;
+
+开放授权实现第三方登录:github 提供授权登录的服务, 这里我们可以做一个第三方登录测试;
+
+打开 github 的 setting:
+
+![打开 setting](/res/auth01.png)
+
+![OAuth apps](/res/auth02.png)
+
+![OAuth apps](/res/auth03.png)
+
+创建完成之后进入页面可以拿到 `Client ID` 和 `Client Secret` 两个参数, 我们可以本地测试一下 github 的第三方登录;
+
+[OAuth github 登录客户端](docs/WebServer/Node/res/鉴权/oauth/index-html.md)
+
+[OAuth github 登录服务端](docs/WebServer/Node/res/鉴权/oauth/index-js.md)
+
+后面就可以直接在软件里面使用 github 登录了;
 
 
 
