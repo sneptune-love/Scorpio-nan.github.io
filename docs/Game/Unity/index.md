@@ -11,6 +11,7 @@
 - [Unity消消乐](https://www.bilibili.com/video/av29791086/);
 - [Unity捕鱼达人](https://www.bilibili.com/video/av36334499/);
 
+- [Unity从入门到入土](https://zhuanlan.zhihu.com/p/151238164)
 
 ##### 面板
  1. Project 项目资源面板

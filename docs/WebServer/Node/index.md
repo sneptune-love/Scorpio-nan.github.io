@@ -1254,5 +1254,803 @@ console.log('解码:', jsonwebtoken.verify(token, secret, opt))
 
 后面就可以直接在软件里面使用 github 登录了;
 
+### Egg.js MVC 分层
+
+Egg.js 三层结构:
++ 信息资源层, 就是 action, 或者是 servlet, 用来处理上下游数据结构;
++ 业务逻辑层一般应用中会有一层 service 抽象, 实现核心业务逻辑, 事务控制也在这一层完成;
++ 数据访问, 也就是 dao 层, 重点负责数据库访问, 完成持久化功能;
+
+创建项目:
+````bash
+npm install egg-init -g
+
+#  egg 是创建的文件夹名称
+egg-init egg --type=simple
+
+cd egg
+npm install
+npm run dev
+````
+`Egg.js` 遵循约定优于配置 (convention over configuration), 也称为按照约定编程, 是一种软件范式, 意在减少软件开发人员需做决定的数量, 简单而又不失灵活;
+
++ 1. 创建一个控制器:
+
+***app/controller/user.js***
+````javascript
+'use strict';
+const Controller = require('egg').Controller;
+class UserController extends Controller {
+    async index() {
+        this.ctx.body = await this.ctx.service.user.getAll();
+    }
+}
+module.exports = UserController;
+````
++ 2. 创建一个服务:
+
+***app/service/user.js***
+````javascript
+'use strict';
+const Service = require('egg').Service;
+
+class UserService extends Service {
+    async getAll() {
+        return [
+            { name: 'tom' }, { name: 'jerry' }
+        ]
+    }
+}
+module.exports = UserService;
+````
+
++ 3. 新增一个路由:
+
+***app/routes.js***
+````javascript
+'use strict';
+
+/**
+ * @param {Egg.Application} app - egg application
+ */
+module.exports = app => {
+    const { router, controller } = app;
+    router.get('/', controller.home.index);
+    router.get('/user', controller.user.index);
+};
+````
+创建一个模型: 以 `mysql` + `sequelize` 为例演示数据持久化;
+
+安装:
+````bash
+npm install egg-sequelize mysql2
+````
++ 4. 在 `config/plugin.js` 中引入 `egg-sequelize` 插件:
+
+***config/plugin.js***
+````javascript
+'use strict';
+
+/** @type Egg.EggPlugin */
+module.exports = {
+    sequelize: {
+        enable: true,
+        package: 'egg-sequelize',
+    }
+};
+````
++ 5. 在 `config/config.default.js` 中编写 `sequelize` 配置:
+
+***config/config.default.js***
+````javascript
+//...
+// add your user config here
+const userConfig = {
+    sequelize: {
+        dialect: "mysql",
+        host: "127.0.0.1",
+        port: 3306,
+        username: "root",
+        password: "root",
+        database: "test"
+    }
+};
+//...
+````
++ 6. 编写 User 模型:
+
+***app/model/user.js***
+````javascript
+module.exports = app =>{
+    const { STRING } = app.Sequelize;
+
+    const User = app.model.define(
+        "user",
+        { name:STRING(30) },
+        { timestamps:false }
+    )
+    
+    // 同步数据
+    User.sync({force:true})
+    
+    return User;
+}
+````
++ 7. 在 service 或者是 controller 中调用
+
+````javascript
+// service
+class UserService extends Service {
+    async getAll() {
+        return await this.ctx.model.User.findAll();
+    }
+}
+
+// 或者是在控制器中
+class UserController extends Controller {
+    async index() {
+        this.ctx.body = await this.ctx.model.User.findAll();
+    }
+}
+````
+[MVC分层架构实现](docs/WebServer/Node/res/Egg分层原理/kgg/index.md)
+
+### Egg 最佳实践
+[Egg 中文网](https://eggjs.org/zh-cn/)
+
+创建项目:
+````bash
+npm install egg-init -g
+
+egg-init egg-server --type=simple
+cd egg-server
+npm install
+
+npm run dev
+````
+
+#### Swagger-doc 接口定义
+[egg-swagger-doc-feat 文档](https://www.npmjs.com/package/egg-swagger-doc-feat)
+
+通常, 我们在写 api 接口的时候, 还需要额外的提供接口文档, 我们可以使用 `Swagger-doc` 来代替人工手写接口文档;
+
++ 1. 添加 controller 方法;
+
+***app/controller/user.js***
+````javascript
+const Controller = require('egg').Controller;
+
+/**
+ * @Controller 用户管理
+ */
+class UserController extends Controller{
+    constructor(ctx){
+        super(ctx);
+    }
+
+    /**
+     * @summary 创建用户
+     * @description 创建用户，记录用户账户/密码/类型
+     * @router post /api/user
+     * @request body createUserRequest *body
+     * @response 200 baseResponse 创建成功
+     */
+    async create(){
+        const { ctx } = this;
+        ctx.body = "user controller"
+    }
+}
+
+module.exports = UserController;
+````
++ 2. 创建生成 doc 文档的依赖, 在 app 目录下新建一个 contract 目录 (这个目录名是基于后面使用的插件的名称), 创建 `index.js `, 这个文件是所有接口使用的通用接口规范：
+
+***app/contract/index.js***
+````javascript
+module.exports = {
+    baseRequest: {
+        id: { 
+            type: 'string', 
+            description: 'id 唯一键', 
+            required: true, 
+            example: '1' 
+        },
+    },
+    baseResponse: {
+        code: { 
+            type: 'integer', 
+            required: true, 
+            example: 0 
+        },
+        data: { 
+            type: 'string', 
+            example: '请求成功' 
+        },
+        errorMessage: { 
+            type: 'string', 
+            example: '请求成功' 
+        },
+    },
+};
+````
+定义接口规范, 对应 controller 里面的注释方法;
+
+***app/contract/user.js***
+````javascript
+module.exports = {
+    createUserRequest: {
+        mobile: {
+            type: 'string', 
+            required: true, 
+            description: '手机号', 
+            example:'18801731528', 
+            format: /^1[34578]\d{9}$/,
+        },
+        password: {
+            type: 'string', 
+            required: true, 
+            description: '密码', 
+            example:'111111',
+        },
+        realName: {
+            type: 'string', 
+            required: true, 
+            description: '姓名', 
+            example: 'Tom'
+        },
+    },
+}
+````
+截止到这一步, 这个 doc 文档是一个很完整的文档了, 但是, 有一个问题就是我们每次需要加一个接口的时候, 都需要在 `router.js` 里面添加一个路由, 这一步其实是有点多余, 且繁琐;
+
+`egg-swagger-doc-feat` 同时也提供了自动注册路由的功能;
+
++ 3. 添加 `SwaggerDoc` 功能
+
+````bash
+# 插件功能
+# 1. 自动生成 doc 接口文档
+# 2. 自动注册路由
+npm install egg-swagger-doc-feat -s
+````
+
+安装完成之后修改 `config` 配置, 同时, 还需要在插件里面去添加 `Swagger` 的文档输出的配置
+
+***config/plugin.js***
+````javascript
+'use strict';
+
+/** @type Egg.EggPlugin */
+module.exports = {
+    swaggerdoc : {
+        enable: true,
+        package: 'egg-swagger-doc-feat',
+    }
+};
+````
+
+***config/config.default.js***
+````javascript
+//...
+config.swaggerdoc = {
+    // 指定插件去扫描哪个目录产生文档
+    dirScanner: './app/controller',
+    // api 接口信息
+    apiInfo: {
+        title: '管理后台 api 接口',
+        description: '管理后台 swagger-ui for egg',
+        version: '1.0.0',
+    },
+    schemes: ['http', 'https'],
+    consumes: ['application/json'],
+    produces: ['application/json'],
+    enableSecurity: false,
+    // enableValidate: true,        // 作者目前没有实现这个功能
+    // 自动生成 router 路由
+    routerMap: true,
+    enable: true,
+}
+//...
+````
+到此一个完整的 `swagger` api 文档就创建好了;
+
+````bash
+npm run dev
+# Server on http://127.0.0.1:7001
+# http://127.0.0.1:7001/swagger-ui.html
+# http://127.0.0.1:7001/swagger-doc
+````
+
+#### 统一异常处理
+当接口遇到异常的时候, 异常结果会一层一层的抛出, 所以最好的做法就是给 api 添加中间件, 专门来处理异常;
+
++ 1. app 目录下面新建一个 `middleware` 文件夹, 用来存放中间件:
+    + 增加异常处理的中间件;
+    + 异常统一处理;
+    + 开发环境返回详细的异常信息;
+    + 生产环境不返回详细信息;
+
+***app/middleware/error_handler.js***
+````javascript
+module.exports = (option,app) =>{
+    return async function(ctx,next){
+        try {
+            await next();
+        } catch (err) {
+            // 所有的异常都在 app 上触发一个 error 事件，框架会记录一条错误日志
+            app.emit("error",err,this);
+
+            // 生产环境时 500 错误的详细错误内容不返回给客户端，因为可能包含敏感信息
+            const status = err.status || 500
+            const error = status == 500 && app.config.env == 'prod' ? "Internal Server Error" : err.message;
+
+            // 返回给前端错误信息
+            ctx.body = {
+                status: status,
+                error:error
+            }
+            if (status === 422) {
+                ctx.body.detail = err.errors
+            }
+            ctx.status = 200;
+        }
+    }
+}
+````
+创建完成之后需要在 `config` 里面配置一下 `error` 中间件:
+
+***config/config.default.js***
+````javascript
+//...
+// add your middleware config here
+config.middleware = [
+    "errorHandler"
+];
+//...
+````
+#### 扩展 Helper 响应统一处理
+通常我们在写 api 接口的时候, 需要做到一个统一的返回处理: 例如 
+```javascript
+{
+    state:"success",
+    message:"请求成功~",
+    data:[]
+}
+```
+
+`helper` 方法实现统一响应格式: 
++ `Helper` 函数用来提供一些实用的 `util` 函数;
++ 它的作用在于我们可以将一些常用的动作抽离在 `helper.j`s 里面成为一个独立的函数, 这样可以用 `JavaScript` 来写复杂的逻辑, 避免逻辑分散各处. 另外还有一个好处是 `Helper` 这样一个简单的函数, 可以让我们更容易编写测试用例;
++ 框架内置了一些常用的 `Helper` 函数, 我们也可以编写自定义的 `Helper` 函数;
 
 
+在 app 文件夹里面创建 `extend` 文件夹(egg 约定名称), 创建 `helper`:
+
+***app/extend/helper.js***
+````javascript
+const moment = require('moment');
+
+// 格式化时间
+exports.formatTime = time => moment(time).format("YYYY-MM-DD HH:mm:ss");
+
+// 处理成功响应
+exports.success = ({ctx,res = null,message = "请求成功~"}) =>{
+    ctx.body = {
+        state:"success",
+        message:message,
+        data:res
+    }
+    ctx.status = 200;
+}
+````
+完成之后直接在 `controller` 里面调用了:
+
+***app/controller/user.js***
+````javascript
+//...
+async create(){
+    const { ctx } = this;
+    const res = {
+        name:"zhangsan",
+        age:24
+    }
+    ctx.helper.success({ctx,res});
+}
+//...
+````
+
+#### Validate 接口格式检查
+接口校验, 例如我们在 `contract` 里面定义的传参规范, 而前端没有按照接口的规范来, 这个时候就需要对输入做一些校验了;
+
+安装:
+````bash
+npm i egg-validate -s
+````
+修改 `config` 配置:
+````javascript
+// config/plugin.js
+validate: {
+    enable: true,
+    package: 'egg-validate',
+},
+````
+完成之后, 我们就可以直接在 `controller` 里面使用 `contract` 里定义的规则了, 如果前端没有按照规则传入参数, 会抛出一个 `422` 错误;
+
+***app/controller/user.js***
+````javascript
+//...
+async create(){
+    const { ctx } = this;
+    
+    // 参数校验
+    ctx.validate(ctx.rule.createUserRequest);
+
+    const res = {
+        name:"zhangsan",
+        age:24
+    }
+    ctx.helper.success({ctx,res});
+}
+//...
+````
+#### MVC 三层结构
++ 1. 添加 `Model` 层, 用于和处理数据或和数据库交互, 这里使用的是 `mongoodb`;
+
+```bash
+npm install egg-mongoose -s
+```
+```javascript
+// config/plugin.js
+mongoose : {
+    enable: true,
+    package: 'egg-mongoose',
+},
+```
+```javascript
+// config/config.default.js
+//...
+config.mongoose = {
+    url: 'mongodb://127.0.0.1:27017/test',
+    options: {
+        // useMongoClient: true,
+        autoReconnect: true,
+        reconnectTries: Number.MAX_VALUE,
+        bufferMaxEntries: 0,
+    },
+}
+//...
+```
++ 2. 注册模型, app 目录下面添加 model 目录, 新建用户模型
+
+***app/model/user.js***
+````javascript
+module.exports = app => {
+    const mongoose = app.mongoose
+    const UserSchema = new mongoose.Schema({
+        mobile: { 
+            type: String, 
+            unique: true, 
+            required: true 
+        },
+        password: { 
+            type: String, 
+            required: true 
+        },
+        realName: { 
+            type: String, 
+            required: true 
+        },
+        avatar: {
+            type: String, 
+            default:'https://1.gravatar.com/avatar/a3e54af3cb6e157e496ae430aed4f4a3?s=96&d=mm'
+        },
+        extra: { 
+            type: mongoose.Schema.Types.Mixed 
+        },
+        createdAt: { 
+            type: Date, 
+            default: Date.now 
+        }
+    })
+    return mongoose.model('User', UserSchema)
+}
+````
+
++ 3. 添加 `Service` 层;
+
+创建用户的时候, 我们的密码不能以铭文的形式存在数据库里面, 可以使用 hash 模式; 安装 hash 依赖库;
+````bash
+npm install egg-bcrypt -s
+````
+````javascript
+// config/plugin.js
+//...
+bcrypt : {
+    enable: true,
+    package: 'egg-bcrypt'
+}
+````
+在 app 目录下面新建 `service`(egg 约定目录) 目录, 新建一个 `user.js`:
+
+***app/service/user.js***
+````javascript
+const Service = require('egg').Service
+class UserService extends Service {
+    /**
+    * 创建用户
+    * @param {*} payload
+    */
+    async create(payload) {
+        const { ctx } = this
+        // genHash 是 egg-bcrypt 插件的功能;
+        payload.password = await this.ctx.genHash(payload.password)
+        return ctx.model.User.create(payload)
+    }
+}
+module.exports = UserService
+````
+`Controller `调用:
+
+***app/controller/user.js***
+````javascript
+//...
+async create(){
+    const { ctx } = this;
+    
+    // 调用 service , 组装参数
+    const payload = ctx.request.body || {};
+    const res = await this.service.user.create(payload);
+
+    ctx.helper.success({ctx,res});
+}
+//...
+````
+到此, 一个完整的 egg 创建用户的功能就完成了, 我们可以打开 swagger 文档测试一下, 调用完接口之后会返回调用结果, 数据库里面也会多一条 user 的数据;
+
+#### 生命周期初始化
+正常情况下, 我们在开发过程中反复调试, 会对开发造成一定的困扰, 这个时候我们就需要在程序启动的时候就帮我们把依赖的一些服务做好, 包括 mongoodb 的初始化, 或者是测试数据自动做好;
+
+默认情况下, egg 创建的项目是没有程序入口的, 但实际上我们可以在项目里面定制项目启动的主程序; 在根目录下面新建一个 `app.js` 文件:
+
+````javascript
+// app.js
+/**
+* 全局定义
+* @param app
+*/
+class AppBootHook {
+    constructor(app) {
+        this.app = app;
+        app.root_path = __dirname;
+    }
+    configWillLoad() {
+        // Ready to call configDidLoad,
+        // Config, plugin files are referred,
+        // this is the last chance to modify the config.
+    }
+    configDidLoad() {
+        // Config, plugin files have been loaded.
+    }
+    async didLoad() {
+        // All files have loaded, start plugin here.
+    }
+    async willReady() {
+        // All plugins have started, can do some thing before app ready
+    }
+    async didReady() {
+        // Worker is ready, can do some things 
+        // don't need to block the app boot.
+        console.log('========Init Data=========')
+        const ctx = await this.app.createAnonymousContext();
+        // 操作数据模型和 service 层, 对数据做一些初始化的工作;
+        await ctx.model.User.remove();
+        await ctx.service.user.create({
+            mobile: '13611388415',
+            password: '111111',
+            realName: 'hope',
+        })
+    }
+    async serverDidReady() {
+
+    }
+    async beforeClose() {
+        // Do some thing before app close.
+    }
+}
+````
+每次程序启动的时候都会执行这一个文件;
+
+#### JWT 统一鉴权
+用户鉴权模块, 这里使用 egg-jwt 模块;
+````bash
+npm install egg-jwt -s
+````
+````javascript
+// config/plugin.js
+//...
+jwt:{
+    enable: true,
+    package: 'egg-jwt',
+}
+````
+````javascript
+// config/config.default.js
+//...
+config.jwt = {
+    secret: 'Great4-M',
+    enable: true, // default is false
+    // 以 api 开头的接口都需要鉴权;
+    match: /^\/api/, // optional
+}
+// 这里我们可以将接口设计为 /api 为通用接口, 其他不需要鉴权的接口可以单独路由;
+````
++ 1. 发放 token 的逻辑单独提取出来, `service ` 层新建一个 `actionToken.js`:
+
+***app/service/actionToken.js***
+````javascript
+const Service = require('egg').Service;
+
+class ActionToken extends Service{
+    async apply(_id){
+        const { ctx } = this;
+        // sign 是 egg-jwt 插件扩展的方法
+        return ctx.app.jwt.sign({
+            data:{
+                _id:_id
+            },
+            exp:Math.floor(Date.now() / 1000) + (60 * 60 * 24 * 7)
+        },ctx.app.config.jwt.secret)
+    }
+}
+
+module.exports = ActionToken;
+````
++ 2. 用来处理 Login 发放令牌, 校验用户名和密码是否正确, 正确就发放令牌; `service ` 层新建一个 `userAccess.js`:
+
+***app/service/userAccess.js***
+````javascript
+const Service = require('egg').Service;
+
+class UserAccessService extends Service{
+    async login(payload){
+        const { ctx,service } = this;
+        // 用传入的手机号去查找 user 是否存在
+        const user = await service.user.findByMobile(payload.mobile);
+        if(!user) ctx.throw(404,"user not found");
+
+        // compare 函数是 egg-bcrypt 插件提供的方法; 用传入的密码和数据库里面查询出来的密码进行对比
+        let verifyPsw = await ctx.compare(payload.password,user.password);
+        if(!verifyPsw) ctx.throw(404,"user password is error");
+
+        return {
+            token:await service.actionToken.apply(user._id)
+        }
+    }
+
+    // 返回当前用户信息
+    async current(){
+        const { ctx,service } = this;
+        const _id = ctx.state.user.data._id;
+        const user = await service.user.find(_id);
+        if(!user) ctx.throw(404,'user not found');
+
+        return user;
+    }
+}
+
+module.exports = UserAccessService;
+````
++ 3. Controller 里面新建 `userAccess.js` 来处理用户登录; 
+
+***app/controller/userAccess.js***
+````javascript
+'use strict'
+const Controller = require('egg').Controller
+/**
+ * @Controller 用户鉴权
+ */
+class UserAccessController extends Controller {
+    constructor(ctx) {
+        super(ctx)
+    }
+    /**
+     * @summary 用户登入
+     * @description 用户登入
+     * @router post /auth/jwt/login
+     * @request body loginRequest *body
+     * @response 200 baseResponse 创建成功
+     */
+    async login() {
+        const { ctx, service } = this
+        // 校验参数
+        ctx.validate(ctx.rule.loginRequest);
+        // 组装参数
+        const payload = ctx.request.body || {}
+
+        // 调用 Service 进行业务处理
+        const res = await service.userAccess.login(payload)
+        // 设置响应内容和响应状态码
+        ctx.helper.success({ ctx, res })
+    }
+}
+
+module.exports = UserAccessController
+````
+当然, 用户登录也是需要对登录的参数进行校验的, 所以在 `contract` 里面需要增加 `userAccess.js`;
+
+***app/contract/userAccess.js***
+````javascript
+module.exports = {
+    loginRequest: {
+        mobile: {
+            type: 'string', 
+            required: true, 
+            description: '手机号', 
+            example: '18801731528', 
+            format: /^1[34578]\d{9}$/,
+        },
+        password: {
+            type: 'string', 
+            required: true, 
+            description: '密码', 
+            example:'111111',
+        },
+    },
+}
+````
+#### 文件上传
+安装依赖:
+````bash
+npm i await-stream-ready stream-wormhole image-downloader -s
+````
+***app/controller/upload.js***
+````javascript
+const fs = require('fs')
+const path = require('path')
+const Controller = require('egg').Controller
+const awaitWriteStream = require('await-stream-ready').write
+const sendToWormhole = require('stream-wormhole')
+const download = require('image-downloader')
+/**
+ * @Controller 上传
+ */
+class UploadController extends Controller {
+    constructor(ctx) {
+        super(ctx)
+    }
+
+    /**
+     * @summary 上传单个文件
+     * @description 上传单个文件
+     * @router post /upload/single
+     */
+    async create() {
+        const { ctx } = this
+        // 要通过 ctx.getFileStream 便捷的获取到用户上传的文件，需要满足两个条件：
+        // 只支持上传一个文件。
+        // 上传文件必须在所有其他的 fields 后面，否则在拿到文件流时可能还获取不到 fields。
+        const stream = await ctx.getFileStream()
+        // 所有表单字段都能通过 `stream.fields` 获取到
+        const filename = path.basename(stream.filename) // 文件名称
+        const extname = path.extname(stream.filename).toLowerCase() // 文件扩展名称
+        const uuid = (Math.random() * 999999).toFixed()
+
+        // 组装参数 stream
+        const target = path.join(this.config.baseDir, 'app/public/uploads', `${uuid}${extname}`)
+        const writeStream = fs.createWriteStream(target)
+        // 文件处理，上传到云存储等等
+        try {
+            await awaitWriteStream(stream.pipe(writeStream))
+        } catch (err) {
+            // 必须将上传的文件流消费掉，要不然浏览器响应会卡死
+            await sendToWormhole(stream)
+            throw err
+        }
+        // 调用 Service 进行业务处理
+        // 设置响应内容和响应状态码
+        ctx.helper.success({ ctx })
+    }
+}
+
+module.exports = UploadController
+````
