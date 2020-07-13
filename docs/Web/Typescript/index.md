@@ -61,7 +61,9 @@ export default class User {
 装饰器的写法: 普通装饰器 (无法传参) 、 装饰器工厂(可传参)
 
 ##### 类装饰器
+
 + 1. 无参数装饰器
+
 ````typescript
 function logClass(category:any){
     console.log('category',category);
@@ -81,6 +83,7 @@ console.log(http['apiUrl']);
 //  http://www.baidu.com
 ````
 + 2. 有参数装饰器(工厂模式)
+
 ````typescript
 function logClass(params:any){
     console.log('params',params);
@@ -103,7 +106,9 @@ console.log(http['apiUrl']);
 ````
 
 ##### 方法装饰器
+
 + 1. 无参数装饰器
+
 ````typescript
 function logClass(target, name, descriptor){
     var oldValue = descriptor.value;
@@ -131,6 +136,7 @@ console.log(user.add(3,5));
 //  8
 ````
 + 2. 装饰器工厂(可传参)
+
 ````typescript
 function fnMethod(params){
     return (target, property, descriptor)=>{
@@ -160,6 +166,7 @@ console.log(fnObj.add(3,5));
 //  40
 ````
 ##### 属性装饰器
+
 属性装饰器表达式会在运行时当作函数被调用, 传入下列2个参数:
 + 对于静态成员来说是类的构造函数, 对于实例成员是类的原型对象;
 + 属性名;
@@ -278,6 +285,7 @@ npm install typescript ts-node-dev tslint @types/node -D
 }
 ````
 ##### 项目基础代码
+
 + 1. 安装依赖:
 
 ````bash
@@ -311,6 +319,7 @@ app.listen(3001,()=>{
 npm start
 ````
 ##### 实现路由定义和发现
+
 需求: 定义一个装饰器, 实现 router 的自动注册; 
 要求: `@get` 的时候, 路由的请求方式为 `get`, `@post` 路由的请求方式为 `post`; 当传进去 `prefix`, 对用的路由规则为 `prefix/xxx`, 例如:`api/users`;
 
@@ -401,6 +410,7 @@ npm start
 ````
 
 ##### 数据校验
+
 上面我们对路由的装饰器保留了一个 `middlewares` 参数, 可以利用中间件的机制实现对数据的校验;
 
 + 1. 首先对 `route-decors`进行改造:
@@ -452,6 +462,7 @@ export default class User {
 }
 ````
 ##### 路由守卫(鉴权)
+
 通常开发情况下, 我们需要对某些 api 进行鉴权, 也可以使用装饰器来完成功能;
 
 ***src/util/route-decors.ts***
