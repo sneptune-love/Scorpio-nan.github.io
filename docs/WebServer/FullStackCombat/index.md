@@ -1319,6 +1319,394 @@ export default {
 
 ### 文件合并
 
+大文件上传, 就是将大文件切分成若干个小区块的文件进行上传, 上传完成之后告诉服务端已经上传完成, 服务端进行文件合并操作;
+
++ 1. client 端:
+
+````html
+<script>
+import sparkMd5 from 'spark-md5';
+const CHUNCK_SIZE = 1 * 1024 * 1024;
+export default {
+    data(){
+        return{
+            file:'',
+            progress:0,
+            chunks:[],
+            worker:null,
+            hashProgress:0,
+            hash:null,
+        }
+    },
+    mounted(){
+        this.bindEvent();
+    },
+    computed:{
+        cubeWidth(){
+            return Math.ceil(Math.sqrt(this.chunks.length)) * 16;
+        },
+        uploadProgress(){
+            if(!this.file || this.chunks.length) return 0;
+            const loaded = this.chunks.map(item => item.chunk.size * item.progress).reduce((acc,cur) => acc + cur , 0);
+            return Number(((loaded * 100) / this.file.size).toFixed(2));
+        }
+    },
+    methods:{
+        handleFileChange(e){
+            const [file] = e.target.files;
+            if(!file) return;
+            this.file = file;
+        },
+        // 文件碎片, size 为每一个区块的大小
+        async createFileChunck(file,size = CHUNCK_SIZE){
+            const chunks = [];
+            let cur = 0;
+            while(cur < this.file.size){
+                chunks.push({index:cur,file:this.file.slice(cur,cur + size)});
+                cur += size;
+            }
+            return chunks;
+        },
+
+        // webworker 计算 md5
+        async calculateHashWorker(){
+            return new Promise(resolve =>{
+                this.worker = new Worker('./hash.js');
+                this.worker.postMessage({chunks: this.chunks});
+                this.worker.onmessage = e =>{
+                    const { progress, hash } = e.data;
+                    this.hashProgress = Number(progress.toFixed(2));
+                    if(hash) resolve(hash);
+                }
+            })
+        },
+
+        async uploadFile(){
+            //if(!await this.isImage(this.file)) return this.$alert('文件格式不对~');
+            this.chunks = await this.createFileChunck(this.file);
+            const hash = await this.calculateHashWorker();
+            this.hash = hash;
+
+            this.chunks = this.chunks.map((chunk,index)=>{
+                // 上传的时候不能直接上传原文件了, 需要改为上传 chunks, 后端进行合并
+                const name = hash + '-' + index;
+                return {
+                    hash,
+                    name,
+                    index,
+                    chunk:chunk.file,
+                    progress:0
+                }
+            })
+
+            await this.uploadChunks(this.chunks);
+        },
+
+        async uploadChunks(chunks){
+            const request = chunks.map((chunk,index)=>{
+                // 转成 promise 对象
+                const form = new FormData();
+                form.append('chunk',chunk.chunk);
+                form.append('hash',chunk.hash);
+                form.append('name',chunk.name);
+
+                return form;
+
+                // 每个区块的上传进度
+            }).map((form,index) => this.$http.post('/uploadFile', form, {
+                onUploadProgress:progress =>{
+                    chunks[index].progress = Number(((progress.loaded / progress.total) * 100).toFixed(2));
+                }
+            }))
+
+            await Promise.all(request);
+            await this.mergeRequest();
+        },
+
+        // 文件上传完成之后, 执行合并文件操作
+        async mergeRequest(){
+            this.$http.post('/merge',{
+                ext:this.file.name.split('.').pop(),
+                size:CHUNCK_SIZE,
+                hash:this.hash
+            })
+        }
+    }
+}
+</script>
+````
+
++ 2. server 端:
+
+***app/controller/common.js***
+```javascript
+
+const fse = require('fs-extra');
+const path = require('path');
+
+//...
+async uploadFile(){
+    const { ctx } = this;
+    // 文件切片存放在 public/hash/(hash + index);
+    const file = ctx.request.files[0];
+    const { hash , name } = ctx.request.body;
+    const chunkpath = path.resolve(this.app.config.uploadDir,hash);
+    
+    // 如果文件不存在,就新建一个文件夹
+    if(!fse.existsSync(chunkpath)) await fse.mkdir(chunkpath);
+
+    await fse.move(file.filepath, `${chunkpath}/${name}`);
+
+    ctx.body = {
+        code:0,
+        message:"上传成功~",
+        data:{
+            url:chunkpath + '/' + name
+        }
+    }
+}
+
+async mergeFile(){
+    const { ctx } = this;
+    const { ext, name, hash, size} = ctx.request.body;
+    const filepath = path.resolve(this.app.config.uploadDir,`${hash}.${ext}`);
+
+    await this.ctx.service.tools.mergeFile(filepath,hash,size);
+
+    ctx.body = {
+        code:0,
+        message:"上传成功~",
+        data:{
+            url:'/public/' + hash + '.' + ext
+        }
+    }
+}
+```
+
+***app/service/tools.js***
+```javascript
+const path = require('path');
+const fse = require('fs-extra');
+
+//...
+async mergeFile(filepath,hashpath,size){
+    const chunkDir = path.resolve(this.app.config.uploadDir,hashpath);  //切片的文件夹
+    let chunks = await fse.readdir(chunkDir);
+    chunks.sort((a,b) => a.split('-')[1] - b.split('-')[1]);
+    chunks = chunks.map(cp => path.resolve(chunkDir,cp));
+
+    await this.mergeChunks(chunks,filepath,size,chunkDir);
+}
+
+async mergeChunks(files,dest,size,chunkDir){
+    const pipStream = (filepath,writeStream)=> new Promise((resolve)=>{
+        const readStream = fse.createReadStream(filepath);
+        readStream.on('end',() =>{
+            // 合并成功之后把之前的切片文件都删除掉
+            fse.unlink(filepath,()=>{
+                fse.rmdir(chunkDir);
+            });
+            resolve();
+        })
+        readStream.pipe(writeStream);
+    })
+
+    await Promise.all(
+        files.map((file,index)=>{
+            pipStream(file,fse.createWriteStream(dest,{
+                start:index * size,
+                end:(index + 1) * size
+            }))
+        })
+    )
+}
+```
+
+### 断点续传
+断点续传的原理其实也是比较简单的, 就是在前端选择文件, 计算完 `hash` 值之后, 先向服务端发起一次请求, 看一下服务端已存在哪些文件碎片, 然后把剩余的碎片上传上去;
+
++ 1. client:
+
+```javascript
+//...
+methods:{
+    async uploadFile(){
+        //if(!await this.isImage(this.file)) return this.$alert('文件格式不对~');
+        this.chunks = await this.createFileChunck(this.file);
+        const hash = await this.calculateHashWorker();
+        this.hash = hash;
+
+        // 计算完 hash 之后询问一下后端文件是否有上传过, 如果没有, 是否有文件的切片
+        const {data : { uploaded, uploadedList }} = await this.$http.post('/checkfile',{
+            hash:hash,
+            ext:this.file.name.split('.').pop()
+        })
+
+        // 如果 uploaded 是 true, 就是已经上传过了
+        if(uploaded) return this.$message.success('秒传成功~');
+
+        this.chunks = this.chunks.map((chunk,index)=>{
+            // 上传的时候不能直接上传原文件了, 需要改为上传 chunks, 后端进行合并
+            const name = hash + '-' + index;
+            return {
+                hash,
+                name,
+                index,
+                chunk:chunk.file,
+                // 已经上传过的设置为 100
+                progress: uploadedList.indexOf(name) > -1 ? 100 : 0
+            }
+        })
+        console.log(this.chunks);
+        console.log(uploadedList);
+
+        await this.uploadChunks(this.chunks,uploadedList);
+    },
+
+    async uploadChunks(chunks,uploadedList){
+        // 如果后端返回的hash名已存在, 那就说明这段是已经传过了的, 过滤掉
+        const request = chunks.filter(chunk => uploadedList.indexOf(chunk.name) == -1).map((chunk,index)=>{
+            // 转成 promise 对象
+            const form = new FormData();
+            form.append('chunk',chunk.chunk);
+            form.append('hash',chunk.hash);
+            form.append('name',chunk.name);
+
+            return { form, index:chunk.index };
+
+            // 每个区块的上传进度
+        }).map(({form,index}) => this.$http.post('/uploadFile', form, {
+            onUploadProgress:progress =>{
+                chunks[index].progress = Number(((progress.loaded / progress.total) * 100).toFixed(2));
+            }
+        }))
+
+        await Promise.all(request);
+        await this.mergeRequest();
+    },
+}
+```
+
++ 2. server端:
+
+````javascript
+// app/controller/common.js
+
+/**
+* 查看文件是否有切片
+*/
+async checkfile(){
+    const { ctx } = this;
+    const { ext, hash } = ctx.request.body;
+    const filepath = path.resolve(this.app.config.uploadDir,`${hash}.${ext}`);
+
+    let uploaded = false;
+    let uploadedList = [];
+
+    // 判断文件是否存在
+    if(fse.existsSync(filepath)){
+        uploaded = true;
+    } else{
+        uploadedList = await this.getUploadedList(path.resolve(this.app.config.uploadDir,hash));
+    }
+    ctx.body = {
+        code:0,
+        uploaded:uploaded,
+        uploadedList:uploadedList
+    }
+}
+
+/**
+* 获取文件碎片
+*/
+async getUploadedList(dirpath){
+    return fse.existsSync(dirpath) ? 
+            // 过滤隐藏文件  .DS_Store
+           fse.readdirSync(dirpath).filter(name => name[0] !== '.') : []
+}
+````
+
+### 异步并发数控制
+文件切片上传的过程中, 如果是稍大一些的文件, 会产生很多的切片, 同时发送很多个 `http` 上传的请求, 也会造成浏览器的卡顿; 这个时候就需要对并发数量进行控制了;
+
+```javascript
+
+//...
+methods:{
+    async uploadChunks(chunks,uploadedList){
+        const request = chunks.filter(chunk => uploadedList.indexOf(chunk.name) == -1).map((chunk,index)=>{
+            // 转成 promise 对象
+            const form = new FormData();
+            form.append('chunk',chunk.chunk);
+            form.append('hash',chunk.hash);
+            form.append('name',chunk.name);
+
+            return { form, index:chunk.index,error:0};
+
+            // 每个区块的上传进度
+        })
+        // .map(({form,index}) => this.$http.post('/uploadFile', form, {
+        //     onUploadProgress:progress =>{
+        //         chunks[index].progress = Number(((progress.loaded / progress.total) * 100).toFixed(2));
+        //     }
+        // }))
+
+        //await Promise.all(request);
+        await this.sendRequest(request);
+        await this.mergeRequest();
+    },
+    // 上传可能报错, 报错之后进度条变红,开始重试, 如果重试三次失败整体全部失败;  limit 标识一起发送多少个请求;
+    async sendRequest(chunks,limit = 4){
+        return new Promise((resolve,reject) =>{
+            const len = chunks.length;
+            let count = 0;
+            let isStop = false;
+            const start = async ()=>{
+                if(isStop) return;
+                const task = chunks.shift();
+                if(task) {
+                    const { form, index } = task;
+                    try {
+                        await this.$http.post('/uploadFile', form, {
+                            onUploadProgress:progress =>{
+                                this.chunks[index].progress = Number(((progress.loaded / progress.total) * 100).toFixed(2));
+                            }
+                        })
+                        if(count == len -1){
+                            resolve();
+                        }else{
+                            count++;
+                            start();
+                        }
+                    } catch (error) {
+                        this.chunks[index].progress = -1;
+                        if(task.error < 3){
+                            task.error ++;
+                            chunks.unshift(task);
+                            start();
+                        }else{
+                            isStop = true;
+                            reject();
+                        }
+                    }
+                }
+            }
+            while(limit > 0){
+                start();
+                limit -= 1;
+            }
+        })
+    },
+}
+```
+
+### Markdown 编辑器
+
+[vue markdown 示例](https://cn.vuejs.org/v2/examples/index.html)
+
+```bash
+npm install marked -s
+```
 
 
 
