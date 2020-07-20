@@ -1,5 +1,4 @@
 ### 全栈项目实战
-这个项目不是一个完整的在运行的项目, 只是把项目里面遇到的一些点拿出来精细化分析;
 
 技术选型:
 + Vue + Nuxt + Egg
@@ -1699,15 +1698,6 @@ methods:{
     },
 }
 ```
-
-### Markdown 编辑器
-
-[vue markdown 示例](https://cn.vuejs.org/v2/examples/index.html)
-
-```bash
-npm install marked -s
-```
-
 
 
 

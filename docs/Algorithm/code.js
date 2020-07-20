@@ -15,7 +15,7 @@ var twoSum = function(nums,target){
 }
 //console.log(twoSum([5,6,4,7,8,3],10));
 
-var twoSum = function(nums,target){
+var twoSum2 = function(nums,target){
     let obj = {};
     for(let i = 0; i < nums.length; i++){
         let num = nums[i];

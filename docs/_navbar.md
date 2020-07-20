@@ -12,10 +12,14 @@
     * [PHP](/docs/WebServer/PHP/index)
     * [Java](/docs/WebServer/Java/index)
     * [MySql](/docs/WebServer/MySql/index)
+    * [Docker](/docs/WebServer/Docker/index)
+    * [vue-nuxt + node-egg](/docs/WebServer/FullStackCombat/index)
 * 游戏开发
     * [CocosCreater](/docs/Game/CocosCreater/index)
     * [Unity](/docs/Game/Unity/index)
     * [Lua](/docs/Game/Lua/index)
 <!-- * [算法](/docs/Algorithm/index) -->
-* [收藏](/docs/Collection/index)
+* 其他/业余
+    * [Photoshop](/docs/Photoshop/index)
+    * [收藏](/docs/Collection/index)
 * [Git](/docs/Git/index)
