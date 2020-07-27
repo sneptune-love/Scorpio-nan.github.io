@@ -5,7 +5,7 @@
     * [TypeScript](/docs/Web/TypeScript/index)
     * [Electron](/docs/Web/Electron/index)
     * [Hybrid](/docs/Web/Hybrid/index)
-    <!-- * [Mobile](/docs/Web/Mobile/index) -->
+    * [Wechat](/docs/Web/Wechat/index)
     * [Webpack](/docs/Web/Webpack/index)
     * [数据结构&算法](/docs/Algorithm/index)
 * 服务端开发
