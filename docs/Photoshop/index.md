@@ -19,6 +19,7 @@
 
 [一分钟PS系列教程](https://www.bilibili.com/video/BV1Ks41147Gv?p=1)
 
+[全套 ps 教程](https://www.bilibili.com/video/BV187411Z7bx?from=search&seid=7231631858533887828)
 ### PS调色
 
 [大PS调色技能让色彩运用得心应手](https://www.bilibili.com/video/av7211840/)
@@ -112,3 +113,7 @@ StockSnap:免费图片素材高清资源库是一个提供可自由下载使用�
 Pexels免费高品质图片下载网是一提供海量共享图片素材的网站，每周都会定量更新，所有的图片都会显示详细的信息，例如拍摄的相机型号、光圈、焦距、ISO、图片大分辨率等，高清大图质量很不错的
 
 [知乎 ps 教程](https://www.zhihu.com/question/62211230/answer/1317245712)
+
+
+### 摄影
+[单反自学从小白到专业](https://www.bilibili.com/video/BV187411Z7bx?from=search&seid=7231631858533887828)

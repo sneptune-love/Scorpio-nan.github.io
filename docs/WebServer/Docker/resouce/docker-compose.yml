@@ -1,0 +1,21 @@
+version: '3.1'
+services: 
+  nginx: 
+    restart: always
+    image: nginx
+    ports: 
+      - 8091:80
+    volumes: 
+      - ./conf.d/:/etc/nginx/conf.d
+      - ./webui/:/var/www/html
+      - ./webui/static:/static
+  app-pm2:
+    container_name: app-pm2
+    build: ./webapi
+    ports: 
+      - 3000:3000
+  mongo:
+    image: mongo
+    restart: always
+    ports: 
+      - 27107:27107

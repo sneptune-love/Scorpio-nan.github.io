@@ -7,6 +7,7 @@
     * [Hybrid](/docs/Web/Hybrid/index)
     <!-- * [Mobile](/docs/Web/Mobile/index) -->
     * [Webpack](/docs/Web/Webpack/index)
+    * [数据结构&算法](/docs/Algorithm/index)
 * 服务端开发
     * [NodeJs](/docs/WebServer/Node/index)
     * [PHP](/docs/WebServer/PHP/index)

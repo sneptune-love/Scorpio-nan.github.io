@@ -149,14 +149,123 @@ var maze_array = [
     [1,1,1,0,0,0,0]
 ]
 
-function FindWay(arr,basex,basey){
-    var temp = [];
-    for(var i = 0; i < arr.length; i++){
-        for(var j = 0; j < arr[i].length; j++){
-            
-        }
-    }
-    return arr;
+
+var Nodes = function(x,y){
+    this.x = x;
+    this.y = y;
+    this.step = 0;
 }
 
-console.log(FindWay(maze_array,2,1));
+var Postions = function(x,y){
+    this.x = x;
+    this.y = y;
+}
+
+function findPostion(pos,maze){
+    var x = pos.x;
+    var y = pos.y;
+    var pos_arr = [];
+    // 上
+    if(x - 1 >= 0){
+        pos_arr.push(new Postions(x - 1, y));
+    }
+    // 右
+    if(y + 1 < maze[0].length){
+        pos_arr.push(new Postions(x, y + 1));
+    }
+    // 下
+    if(x + 1 < maze.length){
+        pos_arr.push(new Postions(x + 1, y));
+    }
+    // 左
+    if(y - 1 >= 0){
+        pos_arr.push(new Postions(x, y - 1));
+    }
+    return pos_arr;
+}
+
+function printNode(maze_node){
+    for(var i = 0; i < maze_node.length; i++){
+        var arr = [];
+        for(var j = 0; j < maze_node[i].length; j++){
+            arr.push(maze_node[i][j].step);
+        }
+        console.log(arr);
+    }
+}
+
+function findPath(maze,start_pos,end_pos){
+    var maze_node = [];
+    // 初始化 maze_node 用于记录距离出发点的距离
+    for(var i = 0; i < maze_array.length; i++){
+        var arr = maze_array[i];
+        var node_arr = [];
+        for(var j = 0; j < arr.length; j++){
+            var node = new Nodes(i,j);
+            node_arr.push(node);
+        }
+        maze_node.push(node_arr);
+    }
+
+    // 先把出发点放入队列
+    var queue = new Queue();
+    queue.enqueue(start_pos);
+    var b_arrive = false;
+    var max_step = 0;
+    while(true){
+        // 从队列中弹出一个点, 计算这个点可以到达的位置
+        var position = queue.dequeue();
+        var pos_arr = findPostion(position,maze);
+        for(var i = 0; i < pos_arr.length; i++){
+            var pos = pos_arr[i];
+            // 判断是否到达终点
+            if(pos.x == end_pos.x && pos.y == end_pos.y){
+                b_arrive = true;
+                max_step = maze_node[position.x][position.y].step;
+                break;
+            }
+            // 起始点
+            if(pos.x == start_pos.x && pos.y == start_pos.y) continue;
+            // 不能通过
+            if(maze[pos.x][pos.y] == 1) continue;
+            // 已经标识过步数
+            if(maze_node[pos.x][pos.y].step > 0) continue;
+            // 这个点的步数 +1
+            maze_node[pos.x][pos.y].step = maze_node[position.x][position.y].step + 1;
+            queue.enqueue(pos);
+        }
+        // 到达终点
+        if(b_arrive) break;
+        // 栈为空, 说明没有路可以到达
+        if(queue.isEmpty()) break;
+    }
+
+    // 方向查找路径
+    var path = [];
+    if(b_arrive){
+        // 能找到路径
+        path.push(end_pos);
+        var old_pos = end_pos;
+        var step = max_step;
+        while(step > 0){
+            var pos_arr = findPostion(old_pos,maze);
+            for(var i = 0; i < pos_arr.length; i++){
+                var pos = pos_arr[i];
+                if(maze_node[pos.x][pos.y].step == step){
+                    step -= 1;
+                    old_pos = pos;
+                    path.push(pos);
+                    break;
+                }
+            }
+        }
+        path.push(start_pos);
+    }
+    return path.reverse();
+}
+
+var start_pos = new Postions(2, 1);
+var end_pos = new Postions(3, 5);
+
+console.log(findPath(maze_array,start_pos,end_pos));
+

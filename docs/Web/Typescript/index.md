@@ -3,6 +3,26 @@
 
 >`TypeScript `具有类型系统,  且是`JavaScript`的超集. 它可以编译成普通的 `JavaScript`代码. `TypeScript` 是一个比 `JavaScript` 更 `Java` 的 `Script`;
 
+### 安装
+
+```bash
+npm install typescript -g
+
+tsc
+
+#   Version 3.9.7
+#   Syntax:   tsc [options] [file...]
+#   
+#   Examples: tsc hello.ts
+#             tsc --outFile file.js file.ts
+#             tsc @args.txt
+#             tsc --build tsconfig.json
+```
+
+
+
+
+
 ### 装饰器
 装饰器允许向一个现有的对象添加新的功能, 同时又不改变其结构, 这种类型的设计模式属于结构型模式, 它是作为一个现有的类的包装;
 

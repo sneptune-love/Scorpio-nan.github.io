@@ -986,6 +986,8 @@ Hooks 特点:
 #### 状态钩子 State Hook
 `useState` 返回两个值相当于 `class` 组件内的 `state` 和 `setState`; 方便了函数组件进行状态的存储和使用;
 
+[react-use](https://github.com/zenghongtu/react-use-chinese/blob/master/README.md)
+
 自定义 Hook (custom hook)
 ````javascript
 import React , {useState,useEffect} from 'react';

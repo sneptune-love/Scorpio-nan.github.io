@@ -2054,3 +2054,129 @@ class UploadController extends Controller {
 
 module.exports = UploadController
 ````
+
+### 部署 Nginx & pm2 & Docker
+
+#### 构建一个高可用的 Node 环境
+
+由于 Node 是单线程的, 当我们使用 Node 作为服务端开发语言的时候, 如果 Node 的程序出错了, 整个服务都会停止; 
+
+主要解决问题：
+- 故障恢复
+- 多核利用
+- 多进程共享端口
+
+````javascript
+// app.js
+const http = require("http");
+const server = http.createServer((request,response)=>{
+    Math.random() > 0.3 ? abc() : '';
+    response.end("Hello Node");
+})
+
+if(!module.parent){
+    server.listen(3001,()=>{
+        console.log("http server listen on localhost:3001");
+    })
+}else{
+    module.exports = server;
+}
+
+
+// cluster.js
+const cluster = require('cluster');
+const os = require('os');
+const process = require('process');
+
+const cupNums = os.cpus().length;
+
+const workers = {};
+// 是否运行在主进程上
+if(cluster.isMaster){
+    // 重启进程之前先看一下, 是否有进程处于退出状态(程序报错);
+    cluster.on('exit',(worker,code,signal)=>{
+        console.log("工作进程 %d 重启中~",worker.process.pid);
+        // 删除掉退出的进程
+        delete workers[worker.process.pid];
+        // 启动一个新的进程
+        worker = cluster.fork();
+        workers[worker.process.pid] = worker;
+    })
+
+    console.log("cupNums",cupNums);
+    for(var i = 0; i < cupNums; i++){
+        var worker = cluster.fork();
+        workers[worker.process.pid] = worker;
+    }
+}else{
+    var app = require("./app");
+    app.listen(3001,()=>{ console.log("http server listen on localhost:3001") });
+}
+
+// 当主进程被关闭的时候(ctrl + c), 停止所有的子进程
+process.on('SIGTERM',()=>{
+    for(var pid in workers){
+        process.kill(pid);
+    }
+    process.exit(0);
+})
+
+// node cluster.js   http://localhost:3001  当程序发生错误的时候, cluster 会自动重新启动子进程来拉起服务;
+````
+
+#### pm2 的应用
+
+`cluster` 模块可以让我们充分利用计算机的核心, 来开启多进程运行程序, 一旦其中一个进程挂掉, 会马上重新启动一个新的进程; 而实际工作中, 通常都会使用 `pm2` 这样的工具来进行进程守护;
+
+`pm2` 应用的特点:
+- 内建负载均衡 (使用 Node cluster 集群模块、子进程, 可以参考朴灵 <深入浅出 Node.js> 第九章);
+- 线程守护, keep-alive;
+- 0 秒停机重载, 维护升级的时候不需要停机;
+- Linux (stable) & MacOSx (stable) & Windows (stable).多平台支持;
+- 停止不稳定的进程( 避免无限循环 );
+- 控制台检测 (https://app.pm2.io/bucket/5f1c01e20a96997208c56a0b/backend/overview/servers);
+- 提供 http api;
+
+[pm2 官方文档](https://pm2.keymetrics.io/docs/usage/quick-start/)
+
+安装:
+
+```bash
+npm install pm2 -g
+
+# 直接启动
+pm2 start app.js
+
+# 查看 log
+pm2 logs
+
+# 启动多核 watch 会监听程序变化自动重启, 通常用于自动化部署   i 2 表示启动两个进程  max 为最大核心数
+pm2 start app.js --watch -i 2
+pm2 start app.js --watch -i max
+
+# 杀掉所有进程
+pm2 kill
+```
+在生产环境下面, 如果要每次都这样使用命令行来启动 `pm2` 有些繁琐, 可以使用 `process.yml` 来对 `pm2` 进行配置; 直接在程序运行的根目录下面新建 `process.yml`:
+
+```bash
+apps:
+    - script: app.js
+      instances: 2
+      watch: true
+      env: 
+        NODE_ENV: production
+
+# pm2 start process.yml
+```
+##### pm2 在线监控
+
+[pm2 在线监控](https://app.pm2.io/bucket/5f1c01e20a96997208c56a0b/backend/overview/servers)
+
+在网站上创建一个新的 `bucket`, 创建好之后会自动生成两个随机字符, 然后执行:
+
+```bash
+pm2 link ibt2pe6ax8yetiz vawrb0621ly52v3
+```
+执行完成, 重新 `pm2 start process.yml` 就可以在网站上看到实时监控了;
+
