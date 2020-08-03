@@ -2,7 +2,7 @@
 * Web前端
     * [Vue](/docs/Web/Vue/index)
     * [React](/docs/Web/React/index)
-    * [TypeScript](/docs/Web/TypeScript/index)
+    * [TypeScript](/docs/Web/Typescript/index)
     * [Electron](/docs/Web/Electron/index)
     * [Hybrid](/docs/Web/Hybrid/index)
     * [Wechat](/docs/Web/Wechat/index)

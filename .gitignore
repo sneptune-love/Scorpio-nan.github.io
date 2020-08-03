@@ -105,3 +105,4 @@ run/
 *.un~
 typings/
 .nyc_output/
+*.json
