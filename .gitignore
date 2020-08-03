@@ -89,7 +89,7 @@ sw.*
 # Vim swap files
 *.swp
 
-package-lock.json
+*/package-lock.json
 
 logs/
 npm-debug.log
