@@ -37,7 +37,8 @@ npm install babel-core@5
 
 在命令行中输入以下命令, 然后一路回车, npm 就会为我们在文件夹里面生成一个 `package.json` 文件, 这个 json 文件主要包含了我们项目开发环境和生产环境的依赖包;文件详细说明参照 [阮一峰 JavaScript标准参考](https://javascript.ruanyifeng.com/nodejs/packagejson.html);
 `````bash
-npm init
+# -y 参数表示初始化的时候允许默认值
+npm init [-y]
 `````
 执行完 `init` 命令之后, 我们的目录里面会多出来一个 `package.json` 文件, 里面有包含一些默认的配置:
 
@@ -119,7 +120,9 @@ innerText('Hello Webpack');
 `````
 这个时候, 我们的 `index.html` 文件里面引入的是 `dist` 目录下面的 `bundle,min.js` , `src` 目录下面的文件还不能被执行, 并且如果直接引入 `src` 目录下面的文件会报错; 我们就需要借用 `webpack` 来编译它;
 
-首先, 如果我们要执行 `webpack` 的编译命令, 我们必须在根目录下面新建一个 `webpack.config.js`, 这个时候执行 `webpack` 命令的时候, `webpack` 就会自动去读取配置文件;
+`webpack` 是非常灵活的, 允许我们定制打包的规范, `webpack` 运行时首先会去找项目根目录下面的 `webpack.config.js`, 这个配置文件决定了 `webpack` 以什么样的规则去打包代码;
+
+首先, 在根目录下面新建一个 `webpack.config.js`;
 
 ***webpack.config.js***
 `````javascript

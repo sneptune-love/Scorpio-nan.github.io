@@ -2180,3 +2180,5 @@ pm2 link ibt2pe6ax8yetiz vawrb0621ly52v3
 ```
 执行完成, 重新 `pm2 start process.yml` 就可以在网站上看到实时监控了;
 
+
+

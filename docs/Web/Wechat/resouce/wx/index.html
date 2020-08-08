@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+
+    <script src="https://cdn.staticfile.org/vue/2.6.0/vue.min.js"></script>
+    <script src="https://cdn.staticfile.org/axios/0.20.0-0/axios.min.js"></script>
+
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+    <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+    <script src="http://res.wx.qq.com/open/js/jweixin-1.6.0.js"></script>
+</head>
+<body>
+    <div id="app">
+        <el-button @click="getToken">getToken</el-button>
+        <el-button @click="getUserList">getUserList</el-button>
+        <el-button @click="getJsConfig">getJsConfig</el-button>
+        <el-button @click="OAuth">微信登录</el-button>
+        <el-button @click="getUserInfo">获取用户信息</el-button>
+    </div>
+    <script>
+        var $vue = new Vue({
+            el:"#app",
+            mounted(){
+                console.log(123);
+            },
+            methods:{
+                async getToken(){
+                    const res = await axios.get('/getToken');
+                    console.log(res);
+                },
+                async getUserList(){
+                    const res = await axios.get('/getUserList');
+                    console.log(res);
+                },
+                async getJsConfig(){
+                    const res = await axios.get('/getJsConfig',{
+                        params:{
+                            url: window.location.href
+                        }
+                    });
+                    // 依赖是按需加载的, 需要使用哪个 api 功能就传哪个进去
+                    res.data.jsApiList = [];
+                    // 微信认证
+                    wx.config(res.data);
+                    wx.ready(function(){
+                        console.log("wx.ready");
+
+                    })
+                    // 获取网络地址
+                    wx.getNetworkType({
+                        success:function(res){
+                            console.log("NetworkType",res.networkType);
+                        }
+                    })
+                },
+                async OAuth(){
+                    window.location.href = '/wxAuthorize';
+                },
+                async getUserInfo(){
+                    const openId = SerializeUrl().openid;
+
+                    const res = await axios.get('/getUserInfo',{
+                        params:{
+                            openid:openId
+                        }
+                    })
+                    console.log(res.data);
+                }
+            }
+        })
+
+        function SerializeUrl(){
+            try {
+                var url = window.location.href;
+                var search = url.substring(url.lastIndexOf('?') + 1)
+                if (!search) {
+                    return {}
+                }
+                return JSON.parse('{"' + decodeURIComponent(search).replace(/"/g, '\\"').replace(/&/g, '","').replace(/=/g, '":"') + '"}') 
+            } catch (error) {
+                return {}
+            }       
+        }
+
+    </script>
+</body>
+</html>
