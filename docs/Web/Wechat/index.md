@@ -158,7 +158,7 @@ const TokenCache = {
     expires_in: 7200
 }
 router.get('/getToken',async ctx =>{
-    const url = `https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid=${config.appid}&secret=${config.appsecret}`;
+    const url = `https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid=\${config.appid}&secret=\${config.appsecret}`;
     const res = await axios.get(url);
 
     Object.assign(TokenCache,res.data,{
@@ -763,7 +763,9 @@ const db = wx.cloud.database();
 
 Page({
     data:{
-        name:""
+        name:"",
+        page:0,
+        result:[]
     },
     keyInput(e){
         this.setData({
@@ -774,7 +776,7 @@ Page({
         db.collection("test").add({
             data:{
                 description:"随便写的内容",
-                date:new Date("2020-08-08"),
+                createTime:new Date().now(),
                 tags:[
                     "clound",
                     "database"
@@ -785,6 +787,21 @@ Page({
         }).then(res =>{
             console.log(res);
         })
+    },
+    // 排序分页查询
+    getList(){
+        const PAGER = 5;
+        db.collection("test")
+            .orderBy("createTime","desc")
+            .skip(this.data.page * PAGER)
+            .limit(PAGER)
+            .get({
+                success: res =>{
+                    this.setData({
+                        result: this.data.result.concat(res.data)
+                    })
+                }
+            })
     }
 })
 ```
@@ -792,19 +809,317 @@ Page({
 
 ![云数据库](./img/wachat_cloud_database.png)
 
+数据库分页查询能够很好的帮助前端进行页面优化, 页面默认展示的数据过多会造成页面卡顿, 移动端常用的分页效果时用户上拉页面, 当页面底部到达一定的距离就加载下一页的内容; 小程序为开发者提供了  `onReachBottomDistance` 页面配置;
 
+在当前页面的 `.json` 配置文件里面添加配置 :
 
+```json
+{
+    "onReachBottomDistance":50
+}
+```
+如上页面配置, 当页面底部的距离到达 `50px` 的时候会触发 `Page` 生命周期里面的 `onReachBottom` 函数, 这个时候就可以对数据进行下一步处理;
+
+```javascript
+Page({
+    onReachBottom(){
+        //.. todo
+    }
+})
+```
+
+#### 云存储
+
+[云存储 文档](https://developers.weixin.qq.com/miniprogram/dev/wxcloud/reference-sdk-api/storage/Cloud.uploadFile.html)
+
+小程序的云存储其实就是一个类似云盘的存储空间;
+
+```html
+<view>
+    <button type="primary" bindtap="onUpload" data-index="0">拍照</button>
+    <button type="primary" bindtap="onUpload" data-index="1">本地相册</button>
+</view>
+```
+```javascript
+// miniprogram/pages/book/book.js
+Page({
+    onUpload:function(ev){
+        // 分辨一下当前按钮点击的是拍照还是本地相册
+        const {target : { dataset: { index }}} = ev;
+        let souceType = ["camera"];
+        if(index != 0) souceType = ["album"];
+        wx.chooseImage({
+            count: 1,
+            sourceType:souceType,
+            sizeType:["original","compressed"],
+            success: res =>{
+                const filePath = res.tempFilePaths[0];
+                // test 为云端目录名称, 如果不需要传到 test 目录, 可以直接 / ;
+                const cloudPath = `test/${Date.now()}${(filePath.match(/\.[^.]+?$/))[0]}`;
+                wx.cloud.uploadFile({
+                    cloudPath,
+                    filePath,
+                    success: result =>{
+                        console.log(result);
+                        /*{
+                            errMsg: "cloud.uploadFile:ok"
+                            fileID: "cloud://wechat-test.7765-wechat-test-1302498770/test/1597048358326.png"
+                            statusCode: 200
+                        }*/
+                    }
+                })
+            }
+        })
+    }
+})
+```
+#### 云开发小程序案例
+
+通过云开发实现一个扫描图片提取文字的功能; 
+
+- 1. 注册百度智能云账号, 开通文字识别功能;
+
+    产品  -->  人工智能  -->  文字识别;
+
+    新建应用之后可以在百度云管理后台看到应用标识;
+
+    ![百度云](./img/baiduyun.png)
+
+- 2. 初始化微信小程序云开发项目, 目录结构:
+
+    ```txt
+    |-- cloudfunctions
+    |-- |-- readyFile
+    |-- |-- |-- config.json
+    |-- |-- |-- index.js
+    |-- |-- └── package.json
+    |-- miniprogram
+    |-- |-- components    
+    |-- |-- images
+    |-- |-- pages
+    |-- |-- |-- detail
+    |-- |-- └── index
+    |-- |-- style
+    |-- |-- app.js
+    |-- |-- app.json
+    |-- |-- app.wxss
+    |-- └── sitemap.json  
+    |-- project.config.json
+    └── README.md
+    ```
+
+- 3. 云函数下安装依赖
+
+    ```bash
+    npm install baidu-aip-sdk
+    ```
+
+- 4. 小程序前端页面开发
+
+    ```html
+    <!-- index/index.wxml -->
+    <view class="container">
+        <!-- 页面背景图, 因为 wxss 不支持 background 引用本地资源, 这是一个 hack 方式, 放一张图定位到页面底层  -->
+        <image class="background" mode="aspectFill" src="../../images/bg.png"></image>
+        <view class="title">
+            <text>文字扫描提取器</text>
+        </view>
+        <view>
+            <button class="transfer" type="primary" bindtap="onTransferClick" data-index="0" >立即转换</button>
+        </view>
+        <view style="margin-top:60px">
+            <button class="transfer" type="primary" bindtap="onTransferClick" data-index="1" >从相册中选取</button>
+        </view>
+    </view>
+    ```
+    ```javascript
+    // index/index.js
+    Page({
+        /**
+        * 点击立即转换
+        */
+        onTransferClick(ev){
+            // 点击的按钮是从相册选取图片还是拍照
+            const {target : { dataset: { index }}} = ev;
+            let souceType = ["camera"];
+            if(index != 0) souceType = ["album"];
+            wx.chooseImage({
+                count: 1,
+                sizeType:["original","compressed"],
+                sourceType:souceType,
+                success: res =>{
+                    const filePath = res.tempFilePaths[0];
+                    const cloudPath = `test/\${Date.now()}\${(filePath.match(/\.[^.]+?$/))[0]}`;
+                    this.uploadFile(filePath,cloudPath);
+                }
+            })
+        },
+
+        /**
+        * 调用云函数读取图片内容
+        */
+        callCloudFunc(path){
+            wx.cloud.callFunction({
+                name:"readyFile",
+                data:{
+                    path:path
+                },
+                success: res=>{
+                    console.log(res);
+                    const result = res.result;
+                    wx.hideLoading({
+                        success: (res) => {},
+                    })
+                    this.openDetail(result);
+                }
+            })
+        },
+
+        /**
+        * 上传文件
+        */
+        uploadFile(filePath,cloudPath){
+            wx.showLoading({
+                title: '正在读取文本内容~',
+            })
+            wx.cloud.uploadFile({
+                cloudPath,
+                filePath,
+                success: result =>{
+                    const fileID = result.fileID;
+                    this.callCloudFunc(fileID);
+                }
+            })
+        },
+        /**
+        * 跳转到新页面打开
+        */
+        openDetail(result){
+            // 图片识别完成之后将返回的结果作为参数传递给 detail 页面
+            wx.navigateTo({
+                url: '/pages/detail/detail',
+                success:res =>{
+                    res.eventChannel.emit("fileResult",result);
+                }
+            })
+        }
+    })
+    ```
+    ```html
+    <!-- detail/detail.wxml -->
+    <view class="context">
+        <text>
+            {{text}}
+        </text>
+    </view>
+    ```
+    ```javascript
+    // detail/detail.js
+    Page({
+        /**
+         * 页面的初始数据
+        */
+        data: {
+            text:""
+        },
+
+        /**
+         * 生命周期函数--监听页面加载
+        */
+        onLoad: function (options) {
+            // 接收从 index 页面传递过来的参数
+            const eventChannel = this.getOpenerEventChannel();
+            eventChannel.on("fileResult",res =>{
+                const { words_result } = res;
+                let str = "";
+                for(let i = 0; i < words_result.length; i++){
+                    str += words_result[i].words + "\n";
+                }
+                this.setData({
+                    text:str
+                })
+            })
+        },
+    })
+    ```
+
+- 5. 小程序云函数开发
+
+    ```javascript
+    // readyFile/index.js
+    const cloud = require('wx-server-sdk')
+    const AipOcrClient = require("baidu-aip-sdk").ocr;
+
+    // 百度云新建应用生成的 app 参数
+    const config = {
+        appId:"21912493",
+        appKey:"m9fHQyBURKLkmV8COq4P1Nxp",
+        appSecret:"9bhinui6HPAqEraT8Yy61b8chL23VFFR"
+    }
+    const client = new AipOcrClient(config.appId,config.appKey,config.appSecret);
+
+    const options = {
+        "detect_direction":true,
+        "probability":true
+    }
+    cloud.init()
+
+    // 云函数入口函数
+    exports.main = async (event, context) => {
+        const { path } = event;
+        return new Promise(async (resolve,reject)=>{
+            const res = await cloud.downloadFile({
+                fileID:path
+            })
+            const image = res.fileContent.toString("base64");
+            client.generalBasic(image,options).then(result =>{
+                resolve(result);
+            }).catch(err =>{
+                reject("网络发生错误~");
+            })
+        })
+    }
+    ```
+
+- 6. 云存储
+
+    小程序使用的是云端存储功能, 前端将拍的照片上传到云端, 云函数再去云端将上传好的文件通过文件 id 的方式下载下来, 并解析图片内容; 因此还需要在   微信开发者工具  -->  云开发  -->  存储  --> 新建 test 目录;
+
+    > 当然, 这里也可以不用云存储的方式, 前端将照片进行 blob --> base64 转换, 直接传递给云函数 base64 之后的内容, 这里使用云存储是演示云开发完整的流程;
 
 
 ### Taro
 
 [Taro 官方文档](https://taro.aotu.io/)
 
-Taro 是一个使用 `React` 框架来开发小程序的开源项目, 
+Taro 是一个使用 `React` 框架来开发小程序的开源项目, 能够将代码编译到多个小程序平台上运行;
+
+初始化项目:
+
+```bash
+# 全局安装
+npm install @tarojs/cli -g
+
+# 初始化
+taro init weChatTaro
+cd weChatTaro
+yarn 
+
+# 启动
+yarn dev:weapp
+```
+初始化的过程中, taro 会提供一些安装选项, (最新版本已经支持到 vue3.0 的语法了) sass, taro-ui 等; 
+
+![taro](./img/taro.png)
+
+项目启动完成之后, 用微信开发者工具导入刚刚创建好的 taro 项目, 既可以在微信小程序端运行了;
 
 
+#### Taro-ui
 
+[Taro-ui](https://taro-ui.jd.com/#/docs/quickstart)
 
+> 需要注意的是: 开发微信小程序的时候, `wx` 下面的 api 都是放在 `wx` 这个命名空间下面, 如果我们要使用 `camera` 组件可以 `wx.createCameraContext` , 而用 `Taro` 开发小程序, 所有的 api 都是放在 `Taro` 命名空间里面的, 使用相机: `Taro.createCameraContext()`;
 
 
 

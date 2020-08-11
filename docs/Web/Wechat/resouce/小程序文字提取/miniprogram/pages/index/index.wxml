@@ -1,0 +1,17 @@
+<!--miniprogram/pages/index/index.wxml-->
+<view class="container">
+    <image class="background" mode="aspectFill" src="../../images/bg.png"></image>
+    <view class="title">
+        <text>文字扫描提取器</text>
+    </view>
+    <view>
+        <button class="transfer" type="primary" bindtap="onTransferClick" data-index="0" >立即转换</button>
+    </view>
+    <view style="margin-top:60px">
+        <button class="transfer" type="primary" bindtap="onTransferClick" data-index="1" >从相册中选取</button>
+    </view>
+    <!-- <view class="btn-group">
+        <button class="btn choose" type="primary" data-index="1" bindtap="onTransferClick">从相册中选取</button>
+        <button class="btn" type="primary">分享到朋友圈</button>
+    </view> -->
+</view>

@@ -1,0 +1,5 @@
+/* miniprogram/pages/detail/detail.wxss */
+.context{
+    padding: 20px;
+    line-height: 30px;
+}

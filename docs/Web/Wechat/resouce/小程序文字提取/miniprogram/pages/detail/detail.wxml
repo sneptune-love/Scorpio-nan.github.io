@@ -1,0 +1,6 @@
+<!--miniprogram/pages/detail/detail.wxml-->
+<view class="context">
+    <text>
+        {{text}}
+    </text>
+</view>
