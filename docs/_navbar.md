@@ -1,5 +1,6 @@
 * [首页](/docs/index.md)
 * Web前端
+    * [Scss 语法](/docs/Web/Scss/index)
     * [Vue](/docs/Web/Vue/index)
     * [React](/docs/Web/React/index)
     * [TypeScript](/docs/Web/Typescript/index)

@@ -2315,3 +2315,20 @@ module.exports = {
 </html>
 `````
 > 插件更多其他的用法, 可以查看 [web-webpack-plugin](https://github.com/gwuhaolin/web-webpack-plugin);
+
+### 扩展
+
+#### npm scripts 钩子
+
+`npm run script`  的时候可以自定义钩子函数, `pre` 为前置钩子, `post` 为后置钩子; 例如:
+
+```json
+// package.json
+"scripts":{
+    "clean":"rm -f ./dist",
+    "dev":"webpack",
+    "predev":"npm run clean",
+    "postdev":"cd dist && echo index.html"
+}
+```
+上面的 `package.json` 文件里面, 当运行 `npm run dev` 的时候, 会先去执行前置钩子 `predev` 脚本, 然后 `dev` 执行完成之后再去执行 `postdev` 后置脚本;

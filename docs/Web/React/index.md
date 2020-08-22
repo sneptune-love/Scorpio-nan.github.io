@@ -1662,6 +1662,231 @@ export default connect(
 )(ReactReduxPage);
 ````
 
+#### 在 react 中使用 redux 完整实例
+
+`redux` 的基本用法就是: 用户发出 `Action`, `Reducer` 函数算出新的 `State`, `View` 重新渲染. 但是现在有一个问题就是, 异步操作怎么办? `Action` 发出以后, `Reducer` 立即算出 `State`, 这叫做同步; `Action` 发出以后, 过一段时间再执行 `Reducer`, 这就是异步. 
+
+
+怎么才能 `Reducer` 在异步操作结束后自动执行呢? 这就要用到新的工具: 中间件 `(middleware)` . 本次用到的中间件有 `redux-thunk`, `redux-logger`;
+
+- 1. 目录结构
+
+```txt
+--- store
+  |-- action.js
+  |-- index.js
+  |-- reduces.js
+  |-- state.js  
+```
+
+- 2. action.js
+
+```javascript
+export const SETPAGETITLE = "SETPAGETITLE";
+export const SETINFOLIST = "SETINFOLIST";
+
+export function setPageTitle(data){
+    return {type:SETPAGETITLE,data:data};
+}
+
+export function setInfoList(data){
+    return (dispatch,getState)=>{
+        /**
+         *  这里可以进行异步请求;
+         *  请求发起之前可以先 dispatch 一个加载状态
+         *  例如: dispatch({type:SETLOADINGSTATE,data:"loading"})
+         */
+        axios.get('api/xxx').then(res =>{
+            dispatch({ type: SETINFOLIST, data: res});
+
+            /**
+             * 请求结束之后可以发起一个结束状态
+             * 例如: dispatch({type:SETLOADINGSTATE,data:"loaded"}) 
+             */
+        })
+    }
+}
+```
+可以看出第一个 `action` 是直接返回了一个 `action：{type: SETPAGETITLE, data: data}` , 而第二个则返回了一个函数, 这个函数接受两个参数 `dispatch` 与 `getState`, `dispatch` 可以在异步加载完成以后发出一个`action`; 在不使用 `redux-thunk` 这个中间件的时候 `dispatch` 接受的只能是一个 `action` ,  使用这个中间件就可以接受上文所说的参数, 也就实现了 `Reducer` 在异步操作结束后自动执行;
+
+- 3. reduces.js
+
+```javascript
+// combineReducers 工具函数, 用于组织多个reducer, 并返回 reducer 集合
+import {combineReducers} from 'redux';
+import defaultState from './state';
+import { SETPAGETITLE, SETINFOLIST } from './action';
+
+function pageTitle(state = defaultState.pageTitle, action){
+    switch(action.type){
+        case SETPAGETITLE:
+            return action.data;
+        default:
+            return state;
+    }
+}
+
+function infoList(state = defaultState.infoList, action){
+    switch(action.type){
+        case SETINFOLIST:
+            return action.data;
+        default:
+            return state;
+    }
+}
+
+export default combineReducers({
+    pageTitle,
+    infoList
+})
+```
+
+- 4. state.js
+
+```javascript
+/**
+ * 存放 state 的默认值 
+ */
+export default{
+    pageTitle:"首页",
+    infoList:[]
+}
+```
+
+- 5. index.js
+
+```javascript
+// applyMiddleware: redux通过该函数来使用中间件
+// createStore: 用于创建store实例
+import { applyMiddleware, createStore } from 'redux';
+
+/** 
+ *  中间件,作用：如果不使用该中间件, 当我们dispatch一个action时, 需要给dispatch函数传入action对象; 
+ *  但如果我们使用了这个中间件, 那么就可以传入一个函数, 这个函数接收两个参数:dispatch和getState. 
+ *  这个 dispatch 可以在将来的异步请求完成后使用, 对于异步action很有用
+ */
+import thunk from 'redux-thunk';
+import logger from 'redux-logger';
+import reducers from './reducers';
+
+const store = createStore({
+    reducers,
+    applyMiddleware(thunk,logger)
+})
+
+export default store;
+```
+
+- 6. 入口文件
+
+```javascript
+import React from 'react';
+import ReactDOM from 'react-dom';
+import {BrowserRouter as Router,Route} from "react-router-dom";
+import {Provider} from "react-redux";
+import store from './store'
+import App from './App'
+import * as serviceWorker from './serviceWorker';
+ 
+ 
+ReactDOM.render(
+    <Provider store={store}>
+        <Router >
+            <Route component={App} />
+        </Router>
+    </Provider>
+, document.getElementById('root'));
+ 
+serviceWorker.unregister();
+```
+
+- 7. 测试  test.js
+
+```javascript
+import React, { Component } from 'react'
+import { Route, Link } from 'react-router-dom'
+
+// connect方法的作用：将额外的props传递给组件，并返回新的组件，组件在该过程中不会受到影响
+import { connect } from 'react-redux'
+
+// 引入action
+import { setPageTitle, setInfoList } from '../store/actions.js'
+
+class Test extends Component {
+    constructor(props) {
+        super(props)
+        this.state = {}
+    }
+
+    componentDidMount() {
+        let { setPageTitle, setInfoList } = this.props
+
+        // 触发setPageTitle action
+        setPageTitle('新的标题')
+
+        // 触发setInfoList action
+        setInfoList([{ data: 1 }])
+    }
+
+    render() {
+        // 从props中解构store
+        let { pageTitle, infoList } = this.props
+
+        // 使用store
+        return (
+            <div>
+                <div>
+                    <Link to="/courses/ii">Courses</Link>
+                </div>
+                <h1>{pageTitle}</h1>
+                {
+                    infoList.length > 0 ? (
+                        <ul>
+                            {
+                                infoList.map((item, index) => {
+                                    return <li key={index}>{item.data}</li>
+                                })
+                            }
+                        </ul>
+                    ) : null
+                }
+            </div>
+        )
+    }
+}
+
+// mapStateToProps：将state映射到组件的props中
+const mapStateToProps = (state) => {
+    return {
+        pageTitle: state.pageTitle,
+        infoList: state.infoList
+    }
+}
+
+// mapDispatchToProps：将dispatch映射到组件的props中
+const mapDispatchToProps = (dispatch, ownProps) => {
+    return {
+        setPageTitle(data) {
+            // 如果不懂这里的逻辑可查看前面对redux-thunk的介绍
+            dispatch(setPageTitle(data))
+            // 执行setPageTitle会返回一个函数
+            // 这正是redux-thunk的所用之处:异步action
+            // 上行代码相当于
+            /*dispatch((dispatch, getState) => {
+                dispatch({ type: 'SET_PAGE_TITLE', data: data })
+            )*/
+        },
+        setInfoList(data) {
+            dispatch(setInfoList(data))
+        }
+    }
+}
+
+export default connect(mapStateToProps, mapDispatchToProps)(Test)
+```
+代码的重点在 `connect` 函数. 这个函数也是由 `react-redux` 提供的. 使用它可以包装普通的展示组件 (这里的Test——只负责展示数据), 然后返回一个容器组件. `connect` 函数通过第一个参数让展示组件订阅了来自 `store` 的数据; 通过第二个参数让展示组件默认可以 `dispatch` 各种 `action`;
+
+
 ### React-Router
 [React Router 中文文档](https://react-guide.github.io/react-router-cn/index.html)
 
@@ -2371,13 +2596,15 @@ umi 默认使用的是 `.css` 文件, 如果我们想使用 `less`, 只需要创
 umi g page channel/index --less
 ```` 
 
-### 扩展 create-react-app
+### 扩展
+
+#### 扩展 create-react-app
 
 `create-react-app` 官方推荐的工具是讲一些复杂的 `webpack` 配置封装了起来, 让开发者不用再关心这些工具的具体配置, 从而降低了工具的使用难度;
 
 但是对于熟悉`webpack` 的开发者, 并且想要定制化 `webpack` 配置, 适应自己的开发环境, 这个时候我们就需要使用一些其他的方法去修改配置了; 因为 `create-react-app` `webpack` 的配置是没有暴露在外面的;
 
-#### 配置 alias
+##### 配置 alias
 
 很多时候我们开发项目的时候都会把项目目录划分成多个文件夹, 每个文件夹下面又分为多个不同功能的模块子文件夹, 这个时候, 如果组件里面需要引入外层的公用的组件, 那我们得这么写:
 `````javascript
@@ -2424,5 +2651,193 @@ module.exports = {
     }
 }
 `````
-修改完配置之后再一次运行 `npm start` 就可以直接在 `react` 组件里面写 `import { Common } from '@component/Button'` 了;
+修改完配置之后再一次运行 `npm start` 就可以直接在 `react` 组件里面写 `import { Button } from '@component/Button'` 了;
+
+#### 路由自动挂载
+开发中不想要每次编写页面的时候都去手动注册路由, 就可以使用 `webpack` 提供的 API `require.context()` 可用来创建自己的( 模块 )上下文; 
+
+`require.context` 函数接收三个参数：
+- 要搜索的文件夹目录
+- 是否还应该搜索它的子目录
+- 以及一个匹配文件的正则表达式
+
+创建一个自动路由组件 `AutoRouter.js`:
+
+```javascript
+import React from 'react';
+import { BrowserRouter, Route , Switch } from 'react-router-dom';
+import Home from '@/pages/Home';
+
+function getComponent() {
+    const files = require.context('../pages',true, /\.js$/);
+    const pages = [];
+    files.keys().forEach( key => {
+        let origin = key.replace(/(\.\/|\.js)/g, '');
+        let Comp = files(key).default;
+        let path = origin.indexOf('/index') !== -1 ? origin.split('/index')[0] : origin;
+
+        pages.push({
+            path,
+            component:Comp,
+            origin
+        });
+    });
+    return pages;
+}
+
+
+const Routes = () => {
+    const pages = getComponent();
+    console.log("自动注册路由~",pages);
+    return (
+        <BrowserRouter>
+            <Switch>
+                <Route path="/" component={ Home }/>
+                {
+                    pages.length > 0 && pages.map((item,index) => {
+                        return (
+                            <Route
+                                key = {index}
+                                exact
+                                path = {`/\${item.path}`}
+                                component = { item.component }
+                            />
+                        )
+                    })
+                }
+            </Switch>
+        </BrowserRouter>
+    )
+}
+
+export default  Routes;
+```
+
+#### 路由按需加载
+`create-react-app` 支持通过动态 `import()` 的方式实现代码分片; `import()` 接收一个模块的路径作为参数, 然后返回一个 `Promise` 对象, `Promise` 对象的值就是待导入的模块对象;
+
+这样做的好处是构建的时候, 不会将路由的代码都整合到一个比较大的文件中; 这样就可以实现路由的按需加载了; 、
+
+首选创建一个异步组件: `AsyncComponent.js`
+
+```javascript
+// AsyncComponent.js
+import React from 'react';
+
+export default function asyncComponent(importComponent){
+    class AsyncComponent extends React.Component{
+        constructor(props){
+            super(props);
+            this.state = {
+                component:null
+            }
+        }
+
+        componentDidMount(){
+            importComponent().then(mod =>{
+                this.setState({
+                    component: mod.default ? mod.default : mod
+                })
+            })
+        }
+
+        render(){
+            const Cmp = this.state.component;
+            return Cmp ? <Cmp {...this.props}/> : null;
+        }
+    }
+    return AsyncComponent;
+}
+```
+
+然后就可以在路由里面使用异步组件了:
+```javascript
+import AsyncComponent from './AsyncComponent';
+
+const Home = AsyncComponent(() => import('@/pages/Home'));
+const Login = AsyncComponent(() => import('@/pages/Login'));
+const Register = AsyncComponent(() => import('@/pages/Register'));
+
+const routes = [
+    {
+        path:"/",
+        name:"Home",
+        title:"首页",
+        authority:false,
+        component: Home
+    },
+    {
+        path:'/Login',
+        name:"Login",
+        title:"登录",
+        authority:false,
+        component: Login
+    },
+    {
+        path:'/Register',
+        name:"Register",
+        title:"登录",
+        authority:false,
+        component: Register
+    }
+]
+
+export default  routes;
+```
+
+#### 移动端适配
+
+`flexible` 方案核心就是根据屏幕的 `dpr` 和尺寸 动态算出当前页的 `rem` 大小;
+
+- 1. 安装依赖
+
+```bash
+yarn add lib-flexible  postcss-px2rem-exclude
+```
+
+- 2. 修改 `webpack` 配置
+
+```javascript
+// node_modules/react-scripts/config/webpack.config.js
+const px2rem = require('postcss-px2rem-exclude');
+
+//...
+{
+    loader: require.resolve('postcss-loader'),
+    options: {
+        ident: 'postcss',
+        plugins: () => [
+            require('postcss-flexbugs-fixes'),
+            require('postcss-preset-env')({
+                autoprefixer: {
+                    flexbox: 'no-2009',
+                },
+                stage: 3,
+            }),
+            postcssNormalize(),
+            px2rem({remUnit:75,exclude:/node_modules/i})
+        ],
+        sourceMap: isEnvProduction && shouldUseSourceMap,
+    },
+}
+```
+
+- 3. 在 react 入口文件引入 lib-flexible
+
+```javascript
+// index.js
+import 'lib-flexible';
+```
+
+- 4. 修改 index.html 的 meta 属性
+
+```html
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no" />
+```
+直接在 scss 文件写 px, 在浏览器调试里面就可以看到 px 被转成了 rem;
+
+#### 路由切换动画
+
+[路由切换动画](https://juejin.im/post/6844903922574819342)
+
 
