@@ -5,7 +5,7 @@
     * [React](/docs/Web/React/index)
     * [TypeScript](/docs/Web/Typescript/index)
     * [Electron](/docs/Web/Electron/index)
-    * [Hybrid](/docs/Web/Hybrid/index)
+    <!-- * [Hybrid](/docs/Web/Hybrid/index) -->
     * [Wechat](/docs/Web/Wechat/index)
     * [Webpack](/docs/Web/Webpack/index)
     * [数据结构&算法](/docs/Algorithm/index)
@@ -20,6 +20,7 @@
     * [CocosCreater](/docs/Game/CocosCreater/index)
     * [Unity](/docs/Game/Unity/index)
     * [Lua](/docs/Game/Lua/index)
+    * [FairyGui](/docs/Game/FairyGui/index)
 <!-- * [算法](/docs/Algorithm/index) -->
 * 其他/业余
     * [Photoshop](/docs/Photoshop/index)

@@ -19,8 +19,25 @@ tsc
 #             tsc --build tsconfig.json
 ```
 
+### ts 类型文件定义
 
+在开发ts时, 有时会遇到没有 `d.ts` 文件的库, 同时在老项目迁移到ts项目时也会遇到一些文件需要自己编写声明文件, 但是在需要的声明文件比较多的情况, 就需要自动生产声明文件;
 
+- 1. 为整个包添加声明文件; 使用微软的 `dts-gen`
+
+```bash
+npm install -g dts-gen   # 先全局安装dts-gen
+npm install -g yargs     # 然后在全局安装你需要生产声明文件的库
+dts-gen -m yargs         # 执行命令生成文件
+```
+
+- 2. 为单个文件生成声明文件; 使用 `dtsmake`
+
+```bash
+npm i dtsmake -g   # 先全局安装dtsmake
+dtsmake -s /path/name.js  # 需要生成的文件地址
+```
+> 生成的文件一般都会有一些问题, 需要自己稍微修改一下, 如果不想写类型直接用 `any`; 执行的时候可能会报错 `tern` 没有按装, 就需要在安装一下, 在项目目录 `npm i tern --save-dev`;
 
 
 ### 装饰器
