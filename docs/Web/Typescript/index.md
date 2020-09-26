@@ -19,25 +19,263 @@ tsc
 #             tsc --build tsconfig.json
 ```
 
-### ts 类型文件定义
+### 数据类型
 
-在开发ts时, 有时会遇到没有 `d.ts` 文件的库, 同时在老项目迁移到ts项目时也会遇到一些文件需要自己编写声明文件, 但是在需要的声明文件比较多的情况, 就需要自动生产声明文件;
+`typescript` 中为了使编写的代码更规范, 更有利于维护, 增加了类型校验;
 
-- 1. 为整个包添加声明文件; 使用微软的 `dts-gen`
++ 布尔类型 (boolean)
 
-```bash
-npm install -g dts-gen   # 先全局安装dts-gen
-npm install -g yargs     # 然后在全局安装你需要生产声明文件的库
-dts-gen -m yargs         # 执行命令生成文件
+```typescript
+//  布尔类型 boolean
+var flag:boolean = true;
+```
++ 数字类型 (number)
+
+```typescript
+//  数字类型
+let num:number = 123;
+```
++ 字符串类型 (string)
+
+```typescript
+//  字符串类型
+let str:string = "aaa";
+```
++ 数组类型 (array)
+
+```typescript
+/*
+ *  数组类型有两种方式
+ */
+
+// 指定数组类型为 number 类型
+var arr:number[] = [];
+
+// 泛型的方式定义数组, 指定数组元素为 number 类型
+var arr:Array<number> = [];
+```
++ 元组类型 (tuple)
+
+```typescript
+//  元组类型, 也是数组的一种, 
+var arr:[string,number,boolean] = ["",123,true];
+```
++ 枚举类型 (enum)
+
+```typescript
+//  枚举类型  enum 默认情况下键值从 0 开始; 如果不给属性赋值就从 0 累加;
+enum Flag{
+    success = 1,
+    error = 0
+}
+var f:Flag = Flag.success;
+
+enum Color{ red, blue, green }
+var c:Color = Color.red;
+console.log(c);         // 0
+```
++ 任意类型 (any)
+
+```typescript
+//  任意类型, 可以重复修改值类型
+var a:any = 123;
+a = "hello";
+a = false;
+```
++ null 和  undefined
+
+```typescript
+//  默认情况下 null 和 undefined 是所有类型的子类型;
+var num:number | undefined;
+console.log(num);       // undefined
+
+num = 123;
+```
++ void 类型
+
+```typescript
+//  表示没有任何类型, 常用于函数的返回值类型
+function print(str:string):void{
+    console.log(str);
+}
+print("hello");
 ```
 
-- 2. 为单个文件生成声明文件; 使用 `dtsmake`
+#### 类型断言
 
-```bash
-npm i dtsmake -g   # 先全局安装dtsmake
-dtsmake -s /path/name.js  # 需要生成的文件地址
+类型断言和其他强类型语言里面的类型转换一样, 但是不进行特殊的数据检查和解构; 
+
+```typescript
+// str 为 any 类型;
+var str:any = "this is a string";
+// 把 any 类型的 str 转换为 string 类型, 取 string 的 length;
+let len:number = (<string>str).length;
+
 ```
-> 生成的文件一般都会有一些问题, 需要自己稍微修改一下, 如果不想写类型直接用 `any`; 执行的时候可能会报错 `tern` 没有按装, 就需要在安装一下, 在项目目录 `npm i tern --save-dev`;
+上面的写法也可以使用 `as` 语法:
+
+```typescript
+var str:any = "this is a string";
+var len:number = (str as string).length;
+```
+
+### 类
+
+#### es5 里面类的定义和继承
+
+回顾一下 es5 里面类的定义;
+
+```typescript
+// 类的构造函数
+function Person(){
+    // 类的属性
+    this.name = "xxx";
+    this.age = 24;
+
+    // 类的方法
+    this.run = function(){
+        alert(this.name + "在运动~");
+    }
+}
+
+// 还可以通过原型链的方式添加类的属性和方法
+Person.prototype.sex = "male";
+Person.prototype.working = function(){
+    alert(this.name + "在工作~");
+}
+
+// 类的静态属性
+Person.getInfo = function(){
+    console.log("这是类的静态属性~");
+}
+
+var p = new Person();
+p.run();
+
+Person.getInfo();
+
+// 类的继承   原型链和对象冒充的方式继承
+function Student(){
+     // 对象冒充实现继承, 对象冒充的方式只能继承自构造函数内定义的属性和方法, 没办法继承原型链上面的属性和方法;
+    Person.call(this);  
+}
+var w = new Student();
+w.run();
+w.working();            //  error
+
+// 原型链的方式继承, 原型链可以继承构造函数里面的属性和方法, 也可以继承原型链上面的属性和方法; 
+// 但是如果父类的构造函数需要传递参数的时候, 实例化子类的时候就没办法给父类传参数
+Student.prototype = new Person();
+```
+组合方式实现类的继承
+
+```javascript
+function Person(name, age){
+    this.name = name;
+    this.age = age;
+
+    this.run = function(){
+        alert(this.name + "在运动~");
+    }
+}
+
+Person.prototype.sex = "Male";
+Person.prototype.working = function(){
+    alert(this.name + "在工作~");
+}
+Person.getInfo = function(){
+    alert("这是类的静态方法~");
+}
+
+function Student(name, age){
+
+    Person.call(this,name,age);
+}
+// Student.prototype = new Person();
+Student.prototype = Person.prototype;
+
+var s = new Student("Tonny",25);
+s.run();
+s.working();
+```
+
+#### typescript 类的定义和继承
+
+`typescript` 中类的定义;
+
+```typescript
+class Person{
+    name:string;
+    age:number;
+    constructor(name:string,age:number){
+        this.name = name;
+        this.age = age;
+    }
+
+    run():void{
+        alert(this.name + "在运动~");
+    }
+
+    getName():string{
+        return this.name;
+    }
+
+    setName(name:string):void{
+        this.name = name;
+    }
+}
+
+var p:Person = new Person("Tom",26);
+p.run();
+
+class Student extends Person{
+    constructor(name:string,age:number){
+        super(name,age);
+    }
+
+    working():void{
+        alert(this.name + "在工作~");
+    }
+}
+
+var s:Student = new Student("Kangkang",25);
+s.run();
+s.setName("Hope");
+```
+
+#### 类修饰符
+
+在 `typescript` 里面定义属性的时候, 给我们提供了访问修饰符;
+
++ public    :  公有的, 在类里面, 子类, 类外面都可以访问到;
++ protected :  保护类型, 在类里面, 子类里面可以访问, 在类外部不能访问;
++ private   :  私有的, 只能在当前类内部访问;
+
+如果不加任何修饰符, 默认为 `public` 访问级别;
+
+
+```typescript
+class Person{
+    private name:string;
+    private age:number;
+    public static sex:string = "Male";
+    constructor(name:string,age:number){
+        this.name = name;
+        this.age = age;
+    }
+    public run():void{
+        alert(this.name + "在运动~");
+    }
+
+    public setName(name:string):void{
+        this.name = name;
+    }
+}
+
+var p:Person = new Person("Tonny",22);
+console.log(Person.sex);
+```
+
 
 
 ### 装饰器
@@ -602,4 +840,158 @@ export default class User {
 ````
 [Typescript 中台开发开源库](https://github.com/su37josephxia/smarty-end)
 
+### ts 类型文件定义
 
+在开发ts时, 有时会遇到没有 `d.ts` 文件的库, 同时在老项目迁移到ts项目时也会遇到一些文件需要自己编写声明文件, 但是在需要的声明文件比较多的情况, 就需要自动生产声明文件;
+
+- 1. 为整个包添加声明文件; 使用微软的 `dts-gen`
+
+```bash
+npm install -g dts-gen   # 先全局安装dts-gen
+npm install -g yargs     # 然后在全局安装你需要生产声明文件的库
+dts-gen -m yargs         # 执行命令生成文件
+```
+
+- 2. 为单个文件生成声明文件; 使用 `dtsmake`
+
+```bash
+npm i dtsmake -g   # 先全局安装dtsmake
+dtsmake -s /path/name.js  # 需要生成的文件地址
+```
+> 生成的文件一般都会有一些问题, 需要自己稍微修改一下, 如果不想写类型直接用 `any`; 执行的时候可能会报错 `tern` 没有按装, 就需要在安装一下, 在项目目录 `npm i tern --save-dev`;
+
+
+### .d.ts 编写
+
+一些常用的描述文件(.d.ts) 都可以直接使用 npm 下载, 例如 jquery 的, `npm install @types/jquery`; 但还是有一些开发中内部使用的库或者是 js 代码需要手动去描述文件, 上面的生成工具有时候并不能完全正确的生成 js 代码的描述文件;
+
+`.d.ts` 在实际开发过程中也会增强代码提示; 例如, 当我们安装了 jquery 的描述文件之后;
+
+![jquery.d.ts](./img/d-ts.png)
+
+#### 全局类型
+
+在 `d.ts` 文件里面, 在最外层声明变量或者函数或者类要在前面加上 `declare` 这个关键字. 在 `typescript` 的规则里面, 如果一个 `.ts`、`.d.ts`文件如果没有用到 `import` 或者 `export` 语法的话, 那么最顶层声明的变量就是全局变量;
+
++ 1. 变量 or 常量
+
+```typescript
+// 变量
+declare var a:number | string;
+
+// 常量
+declare const PI:3.14;
+```
+
++ 2. 函数
+
+```typescript
+// 无参数无返回值
+declare function getName():void;
+
+// 函数重载
+declare function getName(name:string):string;
+declare function getName(id:number,name:string):string;
+
+// 参数可有可无
+declare function render(callback?:()=>void): string;
+```
+
++ 3. 类 class
+
+```typescript
+declare class Person{
+    static maxAge:number;
+    constructor(name:string,age:number);
+    getName(id:number):string;
+}
+```
+![class 类](./img/class.png);
+
+`constructor` 表示的是构造方法, `static` 为静态属性, 只能通过类来访问, 例如: `Person.maxAge`;
+
++ 4. 对象
+
+```typescript
+declare namespace fgui{
+    
+}
+```
+当然, 这个对象上面可能有属性, 方法, 类等, 其实就是把上面的写法放在了 `namespace` 关键字里面, 但是不需要 `declare` 关键字了;
+
+```typescript
+declare namespace app{
+    namespace config{
+        var baseUrl:string;
+        var host:string;
+        var port:string;
+    }
+    function getDeviceType():string;
+    class Config{
+        constructor();
+    }
+}
+```
+![namespace](./img/namespace.png)
+
+#### 混合类型
+有时候有些值既是函数又是 `class` 又是对象的复杂对象. 比如我们常用的 `jquery` 有各种用法;
+
+```typescript
+new $()
+$.ajax()
+$()
+```
+
++ 1. 即是函数也是对象
+
+```typescript
+declare function $fn(s:string):void;
+declare namespace $fn{
+    var name:string;
+}
+```
+`.d.ts` 会将同名的 `namespace` 和 `function` 合并到一起;
+
+![函数&对象](./img/function&namespace.png)
+
++ 2. 即是函数又是类
+
+```typescript
+interface Animal{
+    name:string;
+    getName():string;
+}
+interface AnimalStatic{
+    new (name:string):Animal;
+    AnimalName():string;
+    (w:number):number;
+}
+declare var Animal:AnimalStatic;
+```
+作为函数使用:
+
+![函数使用](./img/cos-func.png)
+
+作为类使用:
+
+![类使用](./img/cos-constructor.png)
+
+类的静态属性:
+
+![静态属性](./img/cos-static.png)
+
+#### 模块化(CommonJS)
+
+除了上面的方式, 我们有时候还是通过 `require()`  的方式引入模块化的代码;
+
+```typescript
+declare module "abcd"{
+    export var a:number;
+    export function ajax():void;
+    export namespace global{
+        var url:string;
+    }
+}
+```
+其实就是在外层嵌套了一个 `module`, 里面的写法和上面的定义差不多, 把 `declare` 换成了 `export`;
