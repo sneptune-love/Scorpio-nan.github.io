@@ -258,6 +258,7 @@ s.setName("Hope");
 class Person{
     private name:string;
     private age:number;
+    //  `static` 关键字, 可以将类里面的属性和方法定义为类的静态属性和方法
     public static sex:string = "Male";
     constructor(name:string,age:number){
         this.name = name;
@@ -276,7 +277,438 @@ var p:Person = new Person("Tonny",22);
 console.log(Person.sex);
 ```
 
+#### 抽象类
 
+`abstract` 关键字定义的抽象类, 这个类要求继承它的之类必需实现抽象类的抽象方法;
+
+```typescript
+abstract class Animal{
+    abstract eat():void;
+}
+
+class Dog extends Animal{
+    constructor(){
+        super();
+    }
+
+    eat():void{
+        
+    }
+}
+```
+抽象类作为其他派生类的基类使用, 语法有点类似接口方法, 两者都是定义方法签名但不包含方法体, 例如上面的 `Animal` 抽象类, 定义了 `eat` 抽象方法, 继承自它的子类必须实现 `eat` 方法;
+
+
+### 接口
+
+在面向对象的程序设计中, 接口是一种规范的定义, 它定义了行为和动作的规范, 在程序设计中, 接口起到一种限制和规范作用, 接口定义了某一批类所需要遵守的规范, 接口不关心这些类的内部状态数据, 也不关心这些类里方法的实现细节, 它只规定这批类里必须提供某些方法, 提供这些方法的类就可以满足实际需要; 
+
+`typescript` 中的接口类似 `java`, 同时还增加了更灵活的接口类型, 包含属性, 函数, 可索引和类等.
+
+
+#### 属性接口
+
+```typescript
+interface FullName{
+    firstName:string,
+    secondName:string,
+    age?:number
+}
+
+function printName(name:FullName){
+    console.log(name.firstName + "---" + name.secondName);
+}
+
+var obj:FullName = {
+    firstName:"zhang",
+    secondName:"san"
+}
+
+printName(obj);
+```
+
+`interface` 关键字可以对函数参数进行约束, 上面的代码中我们需要 `printName` 函数接收一个包含 `firstName`, `secondName` 的 json 对象; 如果传入的参数不包含这两个字段程序就会提示错误; 
+
+另外, 可以看到 `age?` 为可选参数, 不是非必须传入的;
+
+
+#### 函数类型接口
+
+函数类型接口: 对方法传入的参数以及返回值进行约束;
+
+````typescript
+interface Encrypt{
+    (key:string, value:string): string
+}
+
+var md5:Encrypt = function(key:string,value:string):string{
+
+    return encodeURI(key + "%$?^(*@&" + value);
+}
+
+console.log(md5("name","zhangsan"));
+````
+
+#### 可索引接口
+
+可索引接口是对数组和对象进行约束的接口;
+
+```typescript
+// 对数组的约束
+var arr1:number[] = [1,2,3,5];
+
+var arr2:Array<string> = ['1','hahe','akon'];
+
+
+interface UserArray{
+    // 数组的索引为 number 类型, 索引值为 string 类型
+    [index:number]:string
+}
+
+var arr:UserArray = ["jiakang","kongkon"];
+var arr:UserArray = [12,56];            // 报错
+```
+
+#### 类类型接口
+
+对类的约束, 和[抽象类](/docs/Web/Typescript/index?id=抽象类)有点类似;
+
+```typescript
+interface Animal{
+    name:string,
+    eat(str:string):void,
+}
+
+// 类需要实现类接口
+class Dog implements Animal{
+    name:string;
+
+    constructor(name:string){
+        this.name = name;
+    }
+
+    eat():void{
+
+    }
+}
+
+var d:Dog = new Dog("xiaogou");
+```
+`implements` 关键字适用于类来实现接口的规范; 如上代码, `Dog` 类实现了 `Animal` 接口的定义;
+
+
+### 泛型
+
+在开发中, 我们不仅要考虑一致的定义良好的 `api`, 同时也要考虑可重用性;  组件不仅能够支持当前的数据类型, 同时也能支持未来的数据类型, 这在开发大型的系统时候可以提供十分灵活的功能;
+
+通俗的理解泛型, 就是解决 类, 接口, 方法的复用性, 以及对不特定数据的支持;
+
+```typescript
+function GetData<T>(value:T):T{
+
+    return value;
+}
+
+GetData<number>(123);
+GetData<string>("aaa");
+```
+泛型函数要求在函数调用的时候指定类型, 上面的 `GetData` 函数表示传入的参数类型与返回的参数类型一致; 
+
+#### 泛型类
+
+```typescript
+class MinxNum{
+    public list:Array<number> = [];
+
+    add(num:number):void{
+        this.list.push(num);
+    }
+
+    min():number{
+        var n = this.list[0];
+        for(let i = 0; i < this.list.length; i++){
+            if(n > this.list[i]){
+                n = this.list[i];
+            }
+        }
+        return n;
+    }
+}
+
+var m:MinxNum = new MinxNum();
+
+m.add(5);
+m.add(3);
+m.add(1);
+
+console.log(m.min());       // 1
+```
+上面的 `MinxNum` 类可以获得传入参数中的最小值, 但是有一个缺陷就是只能返回 `number` 类型; 如果我们还需要 `a-z` 字符之间返回最小字符就需要重新修改一下这个工具类;
+
+```typescript
+class MinxNum<T>{
+    public list:Array<T> = [];
+
+    add(num:T):void{
+        this.list.push(num);
+    }
+
+    min():T{
+        var n = this.list[0];
+        for(let i = 0; i < this.list.length; i++){
+            if(n > this.list[i]){
+                n = this.list[i];
+            }
+        }
+        return n;
+    }
+}
+
+var m = new MinxNum<number>();
+
+m.add(5);
+m.add(3);
+m.add(1);
+
+console.log(m.min());       // 1
+
+var n = new MinxNum<string>();
+
+n.add("n");
+n.add("a");
+n.add("d");
+
+console.log(n.min());       // a
+```
+
+#### 泛型函数
+
+```typescript
+interface Config<T>{
+    (value:T):T;
+}
+
+function GetData<T>(value:T):T{
+
+    return value;
+}
+
+var d:Config<string> = GetData;
+
+d("aaa");
+```
+
+#### 泛型类约束
+
+泛型可以帮助我们避免重复的代码以及对不特定的数据类型的支持(类型校验), 我们可以把类当做参数的泛型类;
+
++ 定义一个类
++ 把类作为参数来约束数据传入的类型
+
+```typescript
+
+/**
+ *  定义一个 user 类, 这个类的作用就是映射数据库的表字段
+ *  定义一个 Mysql 类, 这个类用来操作数据库
+ *  把 user 类作为参数传入到 Mysql 中
+ */
+
+class User{
+    username:string;
+    password:string;
+}
+
+class Mysql{
+
+    add(user:User):boolean{
+        // mysql query
+        return true;
+    }
+}
+
+var u:User = new User();
+u.username = "zhangsan";
+u.password = "aaa12345";
+
+
+var db:Mysql = new Mysql();
+db.add(u);
+```
+如此来如果我们还需要增加一个文章的类, 并且也需要将文章插入到数据库中, 这样 `Mysql` 类就不能将 `User` 类作为参数传递进去了; 可以使用泛型, 将 `Mysql` 类做成一个通用的工具类, 来对数据库进行操作;
+
+```typescript
+class User{
+    username:string;
+    password:string;
+}
+
+class ArticleCate{
+    title:string | undefined;
+    desc:string | undefined;
+    status:number | undefined;
+}
+
+class Mysql<T>{
+
+    add(info:T):boolean{
+        // mysql query
+        return true;
+    }
+}
+
+var u:User = new User();
+u.username = "zhangsan";
+u.password = "aaa12345";
+
+
+var art:ArticleCate = new ArticleCate();
+art.title = "新闻大爆炸";
+art.desc = "这是一条爆炸性的新闻";
+art.status = 0;
+
+
+var db:Mysql<User> = new Mysql<User>();
+db.add(u);
+
+
+var artc:Mysql<ArticleCate> = new Mysql<ArticleCate>();
+artc.add(art);
+```
+
+#### Typescript 封装 DB 
+
+* 功能: 定义一个操作数据库的类, 支持 Mysql, MongoDb;
+* 要求: 功能一样, 都有 add, delete, update, find 方法;
+* 注意: 代码的重用性和约束统一的规范
+* 思路: 需要约束规范, 所以要定义接口, 需要代码重用, 所以需要使用泛型
+
+```typescript
+interface DBI<T>{
+    add(info:T):boolean;
+    update(info:T,id:number):boolean;
+    delete(id:number):boolean;
+    get(id:number):any[];
+}
+
+class MySql<T> implements DBI<T>{
+    add(info: T): boolean {
+        return true;
+    }
+    update(info: T, id: number): boolean {
+        return true;
+    }
+    delete(id: number): boolean {
+        return true;
+    }
+    get(id: number): any[] {
+        return [];
+    }
+}
+
+class MongoDB<T> implements DBI<T>{
+    add(info: T): boolean {
+        return true;
+    }
+    update(info: T, id: number): boolean {
+        return true;
+    }
+    delete(id: number): boolean {
+        return true;
+    }
+    get(id: number): any[] {
+        return [];
+    }
+}
+
+// 定义一个 User 类
+class User{
+    username:string | undefined;
+    password:string | undefined;
+}
+
+var u:User = new User();
+u.username = "zhangsan";
+u.password = "aa123456";
+
+
+// mysql 
+var oMysql:MySql<User> = new MySql<User>();
+oMysql.add(u);
+
+
+// mongodb
+var oMongo:MongoDB<User> = new MongoDB<User>();
+oMongo.add(u);
+```
+
+### 命名空间
+
+在代码量较大的情况下, 为了避免各种变量名冲突, 可以将相似的功能的函数, 类, 接口等都放置在命名空间内;
+
+同 `Java` 的包, `.net` 的命名空间一样, `typescript` 的命名空间可以将代码包裹起来, 只对外暴露需要在外部访问的对象, 命名空间内的对象通过 `export` 关键字导出; 调用方法使用命名空间的命名调用;
+
+命名空间和模块的区别: 命名空间属于内部模块, 主要用于组织代码, 防止代码命名冲突; 模块则偏重代码的复用性, 一个模块里面可能会有多个命名空间;
+
+```typescript
+namespace A{
+    interface DBI<T>{
+        add(info:T):boolean;
+        update(info:T,id:number):boolean;
+        delete(id:number):boolean;
+        get(id:number):any[];
+    }
+    
+    export class MySql<T> implements DBI<T>{
+        add(info: T): boolean {
+            return true;
+        }
+        update(info: T, id: number): boolean {
+            return true;
+        }
+        delete(id: number): boolean {
+            return true;
+        }
+        get(id: number): any[] {
+            return [];
+        }
+    }
+    
+    export class MongoDB<T> implements DBI<T>{
+        add(info: T): boolean {
+            return true;
+        }
+        update(info: T, id: number): boolean {
+            return true;
+        }
+        delete(id: number): boolean {
+            return true;
+        }
+        get(id: number): any[] {
+            return [];
+        }
+    }
+    
+    // 定义一个 User 类
+    export class User{
+        username:string | undefined;
+        password:string | undefined;
+    }
+}
+
+
+
+var u:A.User = new A.User();
+u.username = "zhangsan";
+u.password = "aa123456";
+
+
+var oMysql:A.MySql<A.User> = new A.MySql<A.User>();
+oMysql.add(u);
+
+
+var oMongo:A.MongoDB<A.User> = new A.MongoDB<A.User>();
+oMongo.add(u);
+```
 
 ### 装饰器
 装饰器允许向一个现有的对象添加新的功能, 同时又不改变其结构, 这种类型的设计模式属于结构型模式, 它是作为一个现有的类的包装;
