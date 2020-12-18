@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        table {
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            border: solid 1px #6D6D6D;
+            padding: 5px 10px;
+        }
+
+        table tr:nth-child(evel) {
+            background: #6D6D6D;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- <textarea id="innerText" cols="50" rows="20"></textarea> -->
+
+    <!-- <textarea name="" id="buffer" cols="50" rows="20"></textarea> -->
+
+    <input type="file" id="file">
+
+
+    <!-- <button id="btn" onclick="onItemClick()">转换成二进制</button> -->
+
+    <div id="tableContainer"></div>
+
+    <hr>
+
+    <input type="text" id="money" placeholder="注单金额"> <input type="text" id="qishu" placeholder="下注期数"><button
+        id="bet_btn" onclick="betDetails()">转换为注单数据</button>
+
+    <div id="contents"></div>
+
+
+    <hr>
+    <select name="" id="select_code"></select> 
+    <button id="yijie" onclick="getDetais(2)">已结注单</button><button id="weijie" onclick="getDetais(1)">未结注单</button>
+    <div id="zhudanmingxi"></div>
+    <hr>
+
+    <button id="getOpenResult" onclick="getOpenResult()">获取开奖结果</button><div id="openresult"></div>
+    <hr>
+
+    <script src="./dist/jquery.js"></script>
+    <script src="./dist/md5.js"></script>
+    <script src="./dist/xlsx.full.min.js"></script>
+    <script src="./dist/xlsx.core.min.js"></script>
+    <script src="./tools.js"></script>
+    <script src="./static/code.js"></script>
+    <script>
+
+
+        window.onload = function(){
+            initCode();
+
+            document.getElementById("file").onchange = function (ev) {
+                var file = ev.target.files[0];
+                console.log(file);
+
+                readWorkbookFromLocalFile(file, readFile);
+            }
+        }
+
+        function readWorkbookFromLocalFile(file, callback) {
+            var reader = new FileReader();
+            reader.onload = function (e) {
+                var data = e.target.result;
+                var workbook = XLSX.read(data, { type: 'binary' });
+                if (callback) callback(workbook);
+            };
+            reader.readAsBinaryString(file);
+        }
+
+        function readFile(workbook) {
+            var array = [];
+            var sheet = workbook.Sheets["Sheet1"];
+
+            for (var i = 2; i <= 109; i++) {
+                var user = {
+                    controller: "user",
+                    action: "checkLoginFirstStep",
+                    message: {
+                        username: sheet['C' + i].v,
+                        //password:"ef209c9343ca8c715265781876657b18",
+                        password: $.md5(String(sheet['B' + i].v)),
+                        code: "1234",
+                        login_www: "3.112.36.229",
+                        usertype: "",
+                        mob: 0
+                    }
+                }
+                array.push(user);
+            }
+            //console.log(array);
+            toHexString(array);
+        }
+
+
+        function toHexString(array) {
+            var HexArray = [];
+            for (var n = 0; n < array.length; n++) {
+                var msg = msgpack.encode(array[n]);
+                var result = '';
+                for (var i = 0; i < msg.length; i++) {
+                    if (i != 0 && i % 2 == 0) {
+                        result += " ";
+                    }
+                    result += msg[i].toString(16);
+                }
+                HexArray.push(result);
+            }
+            //console.log(HexArray);
+            printTable(HexArray);
+        }
+
+
+        function printTable(arr) {
+            var html = "<table id='table'>";
+            for (var i = 0; i < arr.length; i++) {
+                html += "<tr><td>" + arr[i] + "</td></tr>";
+            }
+            html += "</table>";
+            document.getElementById("tableContainer").innerHTML = html;
+
+            openExcel();
+        }
+
+
+        function openExcel() {
+            var sheet = XLSX.utils.table_to_sheet(document.getElementById("table"));
+            openDownloadDialog(sheet2blob(sheet), 'info.csv');
+        }
+
+
+        function openDownloadDialog(url, saveName) {
+            if (typeof url == 'object' && url instanceof Blob) {
+                url = URL.createObjectURL(url); // 创建blob地址
+            }
+            var aLink = document.createElement('a');
+            aLink.href = url;
+            aLink.download = saveName || ''; // HTML5新增的属性，指定保存文件名，可以不要后缀，注意，file:///模式下不会生效
+            var event;
+            if (window.MouseEvent) event = new MouseEvent('click');
+            else {
+                event = document.createEvent('MouseEvents');
+                event.initMouseEvent('click', true, false, window, 0, 0, 0, 0, 0, false, false, false, false, 0, null);
+            }
+            aLink.dispatchEvent(event);
+        }
+
+        function sheet2blob(sheet, sheetName) {
+            sheetName = sheetName || 'sheet1';
+            var workbook = {
+                SheetNames: [sheetName],
+                Sheets: {}
+            };
+            workbook.Sheets[sheetName] = sheet;
+            // 生成excel的配置项
+            var wopts = {
+                bookType: 'xlsx', // 要生成的文件类型
+                bookSST: false, // 是否生成Shared String Table，官方解释是，如果开启生成速度会下降，但在低版本IOS设备上有更好的兼容性
+                type: 'binary'
+            };
+            var wbout = XLSX.write(workbook, wopts);
+            var blob = new Blob([s2ab(wbout)], { type: "application/octet-stream" });
+            // 字符串转ArrayBuffer
+            function s2ab(s) {
+                var buf = new ArrayBuffer(s.length);
+                var view = new Uint8Array(buf);
+                for (var i = 0; i != s.length; ++i) view[i] = s.charCodeAt(i) & 0xFF;
+                return buf;
+            }
+            return blob;
+        }
+
+        // 输出登录参数
+        function onItemClick() {
+            var text = document.getElementById("text");
+
+            var user = {
+                controller: "user",
+                action: "checkLoginFirstStep",
+                message: {
+                    username: "15522220070",
+                    password: "ef209c9343ca8c715265781876657b18",
+                    code: "1234",
+                    login_www: "3.112.36.229",
+                    usertype: "",
+                    mob: 0
+                }
+            }
+
+            document.getElementById("innerText").value = encoding(user);
+
+            document.getElementById("buffer").value = JSON.stringify(msgpack.decode(msg));
+        }
+
+
+        // 输出注单数据
+        function betDetails() {
+            var money = document.getElementById("money");
+            var betNum = document.getElementById("qishu");
+            var bet = {
+                controller: "lottery",
+                action: "doBet",
+                message: {
+                    amounts: money.value,
+                    contents: [],
+                    oddsIds: [
+                        "127133815",
+                        "127133817",
+                        "127133819",
+                        "127133821",
+                        "127133823",
+                        "127133825",
+                        "127133827",
+                        "127133829",
+                        "127133831",
+                        "127133833",
+                        "127133820",
+                        "127133826",
+                    ],
+                    remarks: [],
+                    sn: betNum.value
+                }
+            }
+
+            document.getElementById("contents").innerHTML = encoding(bet);
+        }
+
+
+        // 将参数序列化成 16 进制编码
+        function encoding(obj) {
+            var msg = msgpack.encode(obj);
+            var result = '';
+
+            for (var i = 0; i < msg.length; i++) {
+                if (i != 0 && i % 2 == 0) {
+                    result += " ";
+                }
+                result += msg[i].toString(16);
+            }
+
+            return result;
+        }
+
+
+        // 注单查询
+        function getDetais(state) {
+            var val = document.getElementById("select_code").value;
+            var obj = {
+                controller: "lottery",
+                action: "getDetail",
+                message:{
+                    code: val,
+                    // endTime: "2020-11-20 23:59:59",
+                    page: 1,
+                    pagesize: 100,
+                    // startTime: "2020-11-20 00:00:00",
+                    state: state
+                }
+            }
+
+            document.getElementById("zhudanmingxi").innerHTML = encoding(obj);
+        }
+
+        // 初始化彩种信息
+        function initCode(){
+            var select = document.getElementById("select_code");
+            var first = document.createElement("option");
+            first.value = "";
+            first.innerText = "全部";
+            select.appendChild(first);
+
+            for(var i = 0; i < arr.length; i++){
+                var option = document.createElement("option");
+                option.value = arr[i].code;
+                option.innerText = arr[i].name;
+                select.appendChild(option);
+            }
+        }
+
+
+        // 获取开奖结果
+        function getOpenResult(){
+            var obj = {
+                controller: "lottery",
+                action: "getStages",
+                message:{
+                    code: "",
+                    page: 1,
+                    pagesize: 100,
+                }
+            }
+
+            document.getElementById("openresult").innerHTML = encoding(obj); 
+        }
+
+
+    </script>
+</body>
+
+</html>

@@ -1,6 +1,10 @@
 ### 概述
 [react 揭秘](https://react.iamkasong.com/#%E7%AB%A0%E8%8A%82%E5%88%97%E8%A1%A8)
 
+[react 小书](http://huziketang.mangojuice.top/books/react/lesson1)
+
+[react redux](http://cn.redux.js.org/docs/basics/UsageWithReact.html)
+
 > 这里记录的是 `react` 开发中遇到的问题, [`react-native`](docs/Web/React/react-native.md)环境;
 
 在[`webpack`](docs/Web/Webpack/index.md) 配置里面, 我们可以通过`webpack` 来构建一个 `react` 的开发环境; 不过这里推荐使用 `Facebook` 官方推荐的脚手架工具 `create-react-app`;

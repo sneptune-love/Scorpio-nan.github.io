@@ -63,7 +63,7 @@
         },
         async getUser() {
           const res = await axios.get("/auth/github/userinfo");
-          console.log('res:',res.data)
+          console.log('res:', res.data)
           this.userInfo = res.data
         }
       }

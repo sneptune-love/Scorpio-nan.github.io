@@ -296,7 +296,7 @@ module.exports = (dirPath = "./public") => {
             const fileBaseName = path.basename(url);
             const filepath = url + ctx.url.replace("/public", "");
             try {
-                stats = fs.statSync(filepath);
+                var stats = fs.statSync(filepath);
                 if (stats.isDirectory()) {
                     const dir = fs.readdirSync(filepath);
                     // const

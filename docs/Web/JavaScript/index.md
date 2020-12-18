@@ -526,4 +526,7 @@ var renderFriendList = timeChunk(ary, function (n) {
 renderFriendList();
 ```
 
+### js 操作 Excel
+
+[详情查看代码](./resouce/index.html);
 

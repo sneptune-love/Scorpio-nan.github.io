@@ -1,7 +1,8 @@
 ### PS入门到精通全套
-[李涛Photoshop高手之路基础篇](https://www.bilibili.com/video/av12118586);
 
-[史上最容易听懂的PS入门基础教程](https://www.bilibili.com/video/av4548006?from=search&seid=10439464399201584958)
+ * [史上最容易听懂的PS入门基础教程](https://www.bilibili.com/video/av4548006?from=search&seid=10439464399201584958)  (https://www.doyoudo.com/ 素材)
+
+ * [敬伟PS教程](https://www.bilibili.com/video/BV187411Z7bx)
 
 [Photoshop从入门到放弃全教程](https://www.bilibili.com/video/av59319089?from=search&seid=2931097493191634423)
 
@@ -19,7 +20,6 @@
 
 [一分钟PS系列教程](https://www.bilibili.com/video/BV1Ks41147Gv?p=1)
 
-[全套 ps 教程](https://www.bilibili.com/video/BV187411Z7bx?from=search&seid=7231631858533887828)
 ### PS调色
 
 [大PS调色技能让色彩运用得心应手](https://www.bilibili.com/video/av7211840/)
@@ -117,3 +117,5 @@ Pexels免费高品质图片下载网是一提供海量共享图片素材的网�
 
 ### 摄影
 [单反自学从小白到专业](https://www.bilibili.com/video/BV187411Z7bx?from=search&seid=7231631858533887828)
+
+[图片调色](https://www.zhihu.com/question/28570399/answer/1533936892)

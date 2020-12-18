@@ -17,3 +17,5 @@
 [MarkDown 语法](http://xianbai.me/learn-md/article/syntax/blackslash-escapes.html)
 
 [Telegram Bot For NodeJs](https://www.bilibili.com/video/av28300408/)
+
+[JavaScript 操作 Excel](https://www.cnblogs.com/liuxianan/p/js-excel.html)
