@@ -12,7 +12,7 @@
     + calc() 函数用于动态计算长度值。 calc()函数支持 "+", "-", "*", "/" 运算；
     + @media 查询，你可以针对不同的媒体类型定义不同的样式。
 
-+ css水平、垂直居中的写法，请至少写出4种
++ css水平、垂直居中的写法，请至少写出4种 
     + 行内元素: text-align: center
     + 块级元素: margin: 0 auto
     + `position:absolute +left:50%+ transform:translateX(-50%)`
