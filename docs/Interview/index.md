@@ -1,17 +1,56 @@
+
+### 汇总
+
++ [前端知识进阶](https://www.yuque.com/cuggz/feplus/ghk13w);
+
 ### html
+
+
 + 页面渲染html的过程
     + 1. 浏览器解析html源码, 然后创建一个 DOM树. 并行请求 css/image/js在DOM树中, 每一个HTML标签都有一个对应的节点, 并且每一个文本也都会有一个对应的文本节点. DOM树的根节点就是 documentElement, 对应的是html标签
     + 2. 浏览器解析CSS代码, 计算出最终的样式数据. 构建CSSOM树. 对CSS代码中非法的语法它会直接忽略掉. 解析CSS的时候会按照如下顺序来定义优先级：浏览器默认设置 < 用户设置 < 外链样式 < 内联样式 < html中的style
-    + 3. DOM Tree + CSSOM --> 渲染树（rendering tree）. 渲染树和DOM树有点像, 但是是有区别的; DOM树完全和html标签一一对应, 但是渲染树会忽略掉不需要渲染的元素, 比如head、display:none的元素等. 而且一大段文本中的每一个行在渲染树中都是独立的一个节点. 渲染树中的每一个节点都存储有对应的css属性
+    + 3. DOM Tree + CSSOM --> 渲染树 ( rendering tree ) . 渲染树和DOM树有点像, 但是是有区别的; DOM树完全和html标签一一对应, 但是渲染树会忽略掉不需要渲染的元素, 比如head、display:none的元素等. 而且一大段文本中的每一个行在渲染树中都是独立的一个节点. 渲染树中的每一个节点都存储有对应的css属性
     + 4. 一旦渲染树创建好了, 浏览器就可以根据渲染树直接把页面绘制到屏幕上
 以上四个步骤并不是一次性顺序完成的. 如果DOM或者CSSOM被修改, 以上过程会被重复执行. 实际上, CSS和JavaScript往往会多次修改DOM或者CSSOM
 
 
++ 浏览器的回流和重绘机制
+    + 回流/重排(reflow) :
+
+        当浏览器发现某个部分发生了点变化影响了布局, 需要倒回去重新渲染, 内行称这个回退的过程叫 `reflow`. `reflow` 会从 <html> 这个 root frame 开始递归往下, 依次计算所有的结点几何尺寸和位置. reflow 几乎是无法避免的. 现在界面上流行的一些效果, 比如树状目录的折叠、展开 ( 实质上是元素的显 示与隐藏 ) 等, 都将引起浏览器的 reflow. 鼠标滑过、点击……只要这些行为引起了页面上某些元素的占位面积、定位方式、边距等属性的变化, 都会引起它内部、周围甚至整个页面的重新渲 染. 通常我们都无法预估浏览器到底会 reflow 哪一部分的代码, 它们都彼此相互影响着
+
+    + 重绘(repaint):
+
+        改变某个元素的背景色、文字颜色、边框颜色等等不影响它周围或内部布局的属性时, 屏幕的一部分要重画, 但是元素的几何尺寸没有变
+
+        + display:none 的节点不会被加入Render Tree, 而visibility: hidden 则会, 所以, 如果某个节点最开始是不显示的, 设为display:none是更优的
+        + display:none 会触发 reflow, 而 visibility:hidden 只会触发 repaint, 因为没有发现位置变化
+        + 有些情况下, 比如修改了元素的样式, 浏览器并不会立刻reflow 或 repaint 一次, 而是会把这样的操作积攒一批, 然后做一次 reflow, 这又叫异步 reflow 或增量异步 reflow. 但是在有些情况下, 比如resize 窗口, 改变了页面默认的字体等. 对于这些操作, 浏览器会马上进行 reflow
+
+    + 如何减少和避免重排
+
+        Reflow 的成本比 Repaint 的成本高得多的多. 一个节点的 Reflow 很有可能导致子节点, 甚至父节点以及兄弟节点的 Reflow . 在一些高性能的电脑上也许还没什么, 但是如果 Reflow 发生在手机上, 那么这个过程是延慢加载和耗电的. ----浏览器的渲染原理简介
+
+        + 直接改变className, 如果动态改变样式, 则使用cssText (考虑没有优化的浏览器)
+        + 让要操作的元素进行”离线处理”, 处理完后一起更新; 
+            - 使用DocumentFragment进行缓存操作,引发一次回流和重绘; 
+            - 使用display:none技术, 只引发两次回流和重绘
+            - 使用cloneNode (true or false) 和 replaceChild 技术, 引发一次回流和重绘; 
+        + 不要经常访问会引起浏览器flush队列的属性, 如果你确实要访问, 利用缓存; 
+        + 让元素脱离动画流, 减少回流的Render Tree的规模; 
+
+
++ async defer 的作用是什么, 有什么区别
+    + 没有 defer 或 async, 浏览器会立即加载并执行指定的脚本, 也就是说不等待后续载入的文档元素, 读到就加载并执行;
+    + async(异步加载): async 属性表示异步执行引入的 JavaScript, 与 defer 的区别在于, 如果已经加载好, 就会开始执行——无论此刻是 HTML 解析阶段还是 DOMContentLoaded 触发之后. 需要注意的是, 这种方式加载的 JavaScript 依然会阻塞 load 事件. 换句话说, async-script 可能在 DOMContentLoaded 触发之前或之后执行, 但一定在 load 触发之前执行. 
+    + defer(延迟引入)：defer 属性表示延迟执行引入的 JavaScript, 即这段 JavaScript 加载时 HTML 并未停止解析, 这两个过程是并行的. 整个 document 解析完毕且 defer-script 也加载完成之后 ( 这两件事情的顺序无关 ) , 会执行所有由 defer-script 加载的 JavaScript 代码, 然后触发 DOMContentLoaded 事件; 
+    + 区别: defer 与相比普通 script, 有两点区别：**载入 JavaScript 文件时不阻塞 HTML 的解析, 执行阶段被放到 HTML 标签解析完成之后. 在加载多个JS脚本的时候, async是无顺序的加载, 而defer是有顺序的加载
 
 ### css
+
 + calc, support, media各自的含义及用法
     + @support主要是用于检测浏览器是否支持CSS的某个属性, 其实就是条件判断, 如果支持某个属性, 你可以写一套样式, 如果不支持某个属性, 你也可以提供另外一套样式作为替补. 
-    + calc() 函数用于动态计算长度值.  calc()函数支持 "+", "-", "*", "/" 运算；
+    + calc() 函数用于动态计算长度值.  calc()函数支持 "+", "-", "*", "/" 运算; 
     + @media 查询, 你可以针对不同的媒体类型定义不同的样式. 
 
 
@@ -31,7 +70,7 @@
     + rem 是全部的长度都相对于根元素<html>元素. 通常做法是给html元素设置一个字体大小, 然后其他元素的长度单位就为rem
     + em  子元素字体大小的em是相对于父元素字体大小; 元素的width/height/padding/margin用em的话是相对于该元素的font-size
     + vw/vh 全称是 Viewport Width 和 Viewport Height, 视窗的宽度和高度, 相当于 屏幕宽度和高度的 1%, 不过, 处理宽度的时候%单位更合适, 处理高度的 话 vh 单位更好
-    + px px像素（Pixel）. 相对长度单位. 像素px是相对于显示器屏幕分辨率而言的. 一般电脑的分辨率有 `{1920*1024}` 等不同的分辨率 `1920*1024` 前者是屏幕宽度总共有1920个像素,后者则是高度为1024个像素
+    + px px像素 ( Pixel ) . 相对长度单位. 像素px是相对于显示器屏幕分辨率而言的. 一般电脑的分辨率有 `{1920*1024}` 等不同的分辨率 `1920*1024` 前者是屏幕宽度总共有1920个像素,后者则是高度为1024个像素
 
 
 + 0.5px的直线
@@ -94,7 +133,7 @@
                 age:30
             }
 
-            obj.callFunc.call(db,'成都','上海')；　　　　 // 德玛 年龄 30  来自 成都去往上海
+            obj.callFunc.call(db,'成都','上海'); 　　　　 // 德玛 年龄 30  来自 成都去往上海
             obj.callFunc.apply(db,['成都','上海']);      // 德玛 年龄 30  来自 成都去往上海  
             obj.callFunc.bind(db,'成都','上海')();       // 德玛 年龄 30  来自 成都去往上海
             obj.callFunc.bind(db,['成都','上海'])();　　 // 德玛 年龄 30  来自 成都, 上海去往 undefined
@@ -179,7 +218,7 @@
                 
                 // 这里返回的函数是每次实际调用的函数
                 return function(...params) {
-                    // 如果没有创建延迟执行函数（later）, 就创建一个
+                    // 如果没有创建延迟执行函数 ( later ) , 就创建一个
                     if (!timer) {
                         timer = later()
                         // 如果是立即执行, 调用函数
@@ -190,7 +229,7 @@
                             context = this
                             args = params
                         }
-                    // 如果已有延迟执行函数（later）, 调用的时候清除原来的并重新设定一个
+                    // 如果已有延迟执行函数 ( later ) , 调用的时候清除原来的并重新设定一个
                     // 这样做延迟函数会重新计时
                     } else {
                         clearTimeout(timer)
@@ -227,9 +266,9 @@
 
 + 宏任务和微任务
 
-    + 宏任务：当前调用栈中执行的任务称为宏任务. （主代码快, 定时器等等）. 
-    + 微任务： 当前（此次事件循环中）宏任务执行完, 在下一个宏任务开始之前需要执行的任务为微任务. （可以理解为回调事件, promise.then, proness.nextTick等等）
-    + 宏任务中的事件放在callback queue中, 由事件触发线程维护；微任务的事件放在微任务队列中, 由js引擎线程维护
+    + 宏任务：当前调用栈中执行的任务称为宏任务.  ( 主代码快, 定时器等等 ) . 
+    + 微任务： 当前 ( 此次事件循环中 ) 宏任务执行完, 在下一个宏任务开始之前需要执行的任务为微任务.  ( 可以理解为回调事件, promise.then, proness.nextTick等等 ) 
+    + 宏任务中的事件放在callback queue中, 由事件触发线程维护; 微任务的事件放在微任务队列中, 由js引擎线程维护
 
 
 
@@ -349,28 +388,28 @@
     ```js
         (1)依赖全局库
 
-            1、如果你的库依赖于某个全局库，使用/// <reference types="..." />指令：
+            1、如果你的库依赖于某个全局库, 使用/// <reference types="..." />指令：
             
             /// <reference types="someLib" />
             function getThing(): someLib.thing;
 
         (2)依赖模块
             
-            1、如果你的库依赖于模块，使用import语句：
+            1、如果你的库依赖于模块, 使用import语句：
             
             import * as moment from "moment";
             function getThing(): moment;
 
         (3)依赖UMD库
             1、从全局库
-                如果你的全局库依赖于某个UMD模块，使用/// <reference types指令：
+                如果你的全局库依赖于某个UMD模块, 使用/// <reference types指令：
                 
                 /// <reference types="moment" />
                 function getThing(): moment;
             
             2、从一个模块或UMD库
             
-                如果你的模块或UMD库依赖于一个UMD库，使用import语句：
+                如果你的模块或UMD库依赖于一个UMD库, 使用import语句：
                 
                 import * as someLib from 'someLib';
                 
@@ -395,13 +434,13 @@
 + CSRF 即跨站请求伪造, 是一种常见的Web攻击, 它利利⽤用户已登录的身份, 在⽤用户毫不知情的情况下, 以用户的名义完成非法操作
 
     + 用户已经登录了站点 A, 并在本地记录了 cookie
-    + 在⽤用户没有登出站点 A 的情况下（也就是 cookie 生效的情况下）, 访问了恶意攻击者提供的引诱危险站点 B (B 站点要求访问站点A)
+    + 在⽤用户没有登出站点 A 的情况下 ( 也就是 cookie 生效的情况下 ) , 访问了恶意攻击者提供的引诱危险站点 B (B 站点要求访问站点A)
     + 站点 A 没有做任何 CSRF 防御
     + CSRF攻击危害
         + 利⽤用户登录态
         + 用户不知情
         + 完成业务请求
-        + 盗取用户资金（转账, 消费）
+        + 盗取用户资金 ( 转账, 消费 ) 
         + 冒充⽤户发帖背锅
         + 损害网站声誉
     + 防御手段
