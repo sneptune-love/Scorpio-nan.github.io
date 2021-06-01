@@ -2848,3 +2848,30 @@ import 'lib-flexible';
 [路由切换动画](https://juejin.im/post/6844903922574819342)
 
 
+### Fragment 原理
+
+```js
+import React, { Component } from 'react';
+
+const Fragment = ({ children }) => children;
+
+const Hello = (props)=> {
+    return (
+        <Fragment>
+            <h1>React Hacks</h1>
+            <p>Hello, { props.name }</p>
+        </Fragment>
+    )
+}
+
+class App extends Component{
+    render(){
+        return {
+            <div className="app">
+                <Hello name="Hackages">
+            </div>
+        }
+    }
+}
+```
+

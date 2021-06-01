@@ -23,6 +23,27 @@ vue init webpack my-project         // `vue-cli@2x `
 `````
 安装的时候, ` bash ` 终端会有提示是否要使用 ` vuex ` , ` e2e ` , ` Eslint ` 等插件工具, 这里我们可以通过项目的复杂程度判断是否需要安装 ; 
 
+
+#### 快速原型开发
+
+我们可以使用 `vue serve` 和 `vue build` 命令对单个的 `.vue` 文件进行快速的原型开发;
+
+```bash
+# 安装 @vue/cli-service-global 扩展
+npm install -g @vue/cli-service-global;
+
+# 启动一个服务并运行原型
+vue serve hello.vue
+```
+
+#### 可视化管理
+
+除了使用命令行工具之外, 还可以通过可视化界面的方式创建项目, 运行 `vue ui` 之后会启动一个可视化界面, 用来对项目进行管理;
+
+```bash
+vue ui
+```
+
 ### 路由配置
 
 ` vue ` 官方有为我们提供了一个强大易用的路由库 ` vue-router `[vue-router 官方文档](https://router.vuejs.org/zh/) ;
@@ -108,6 +129,160 @@ export default new Router({
 #### 过渡动画
 
 > 让 webapp 拥有类似 iOS 页面切换左右滑动的动画, 用到的是 ` vue ` 自带的过渡动画 ` <transition></transition> `; 
+
+##### transition 动画
+
++ 可以通过 `transition` 的 `name` 属性, 给组件添加动画;
+
+```html
+<template>
+    <div class="content">
+        <transition name="fade">
+			<div v-if="show"></div>
+        </transition>
+    </div>
+</template>
+
+<style lang="scss" scoped>
+.fade-enter, .fade-leave-to{
+    opacity: 0;
+}
+
+.fade-enter-active, .fade-leave-active{
+    transition: opacity  0.5s ease-in;
+}
+</style>
+```
+`transition` 组件会给包裹的 dom 添加关键帧类名, 关键帧类名为以下 6 个状态:
+
+`enter`:  `v-enter`, `v-enter-active`, `v-enter-to`;
+
+`leave`:  `v-leave`, `v-leave-active`, `v-leave-to`;
+
+
++ 还可以通过自定义过渡类名, 有效的结合 `Animate.css` 这类动画库制作更加精美的动画;
+
+```html
+<link href="https://cdn.staticfile.org/animate.css/2.0/animate.css"/>
+
+<template>
+	<transition enter-active-class="animated bounceIn" leave-active-class="animated bounceOut">
+		<div v-if="show"></div>
+	</transition>
+<template>
+```
+
++ js 动画钩子
+
+```js
+<template>
+	<transition 
+		v-on:before-enter = "beforeEnter"
+		v-on:enter = "enter"
+		v-on:after-enter = "afterEnter"
+		v-on:enter-cancelled = "enterCancelled"
+		v-on:before-leave = "beforeLeave"
+		v-on:leave = "leave"
+		v-on:after-leave = "afterLeave"
+		v-on:leave-cancelled = "leaveCancelled"
+	>
+		<div v-if="show"></div>
+	</transition>
+<template>
+
+<script>
+    export default {
+        data(){
+            return{}
+        },
+        methods:{
+            beforeEnter(el){
+				// 动画初始状态
+				el.style.opacity = 0;
+			},
+			enter(el, done){
+				// 触发浏览器回流激活动画
+				document.body.offsetHeight;
+				// 动画结束动画
+				el.style.opacity = 1;
+				// 监听动画的结束时间, 执行 done 函数
+				el.addEventListener("transitionend",done);
+			},
+			afterEnter(el){
+				el.removeEventListener("transitionend");
+			},
+			beforeLeave(el){
+				el.style.opacity = 1;
+			},
+			leave(el){
+				// 动画结束动画
+				el.style.opacity = 0;
+				// 监听动画的结束时间, 执行 done 函数
+				el.addEventListener("transitionend",done);
+			},
+			afterLeave(){
+				el.removeEventListener("transitionend");
+			}
+        }
+    }
+</script>
+```
+> 当只用 JavaScript 过渡的时候, 在 enter 和 leave 中必须使用 done 进行回调. 否则, 它们将被同步调用, 过渡会立即完成;
+
+当然, 我们还可以使用一些 js 的动画库在钩子函数里面完成一些更复杂的动画; 使用 `velocity.js` 改造一下上面的代码:
+
+```js
+<template>
+	<transition 
+		v-on:before-enter = "beforeEnter"
+		v-on:enter = "enter"
+		v-on:after-enter = "afterEnter"
+		v-on:enter-cancelled = "enterCancelled"
+		v-on:before-leave = "beforeLeave"
+		v-on:leave = "leave"
+		v-on:after-leave = "afterLeave"
+		v-on:leave-cancelled = "leaveCancelled"
+	>
+		<div v-if="show"></div>
+	</transition>
+<template>
+
+<script src="https://cdn.staticfile.org/velocity/0.0.0/jquery.velocity.js"></script>
+<script>
+    export default {
+        data(){
+            return{}
+        },
+        methods:{
+            beforeEnter(el){
+				// 动画初始状态
+				el.style.opacity = 0;
+			},
+			enter(el, done){
+				Velocity(el, { opacity:1 }, { duration:500 }, complate:done );
+			},
+			beforeLeave(el){
+				el.style.opacity = 1;
+			},
+			leave(){
+				Velocity(el, { opacity:0 }, { duration:500 }, complate:done );
+			},
+        }
+    }
+</script>
+```
+
+##### 列表过渡
+
+有时候我们在操作列表数据的时候, 列表的 新增/删除 也可以添加一些动画效果
+
+```html
+<transition-group name="fade">
+	<div v-for="(item,index) in list" :key="index"></div>
+</transition-group>
+```
+
+#### 页面切换转场动画
 
 ##### 实现方式
 
@@ -329,10 +504,226 @@ new Vue({
 由于我们有一个移动端的项目, 需要打包成APP, 并且需要使用到IOS和Android的一些原生的功能, 所以选用的UI库是 [`MUI`](http://dev.dcloud.net.cn/mui/ui/),配合 `Dcloud`提供的 H5+方法使用;
 但是 `MUI`里面提供的一些组件并不能满足我们的开发需求, 所以这时候就需要自己去开发一些组件了;
 
+
+#### v-model 语法糖
+
+`vue` 中的 `v-model` 可以用来对数据做双向绑定：
+
+```js
+<template>
+    <div class="content">
+        <input type="text" v-model="username">
+        {{ username }}
+    </div>
+</template>
+
+<script>
+    export default {
+        data() {
+            return {
+                username:""
+            };
+        },
+        methods: {
+
+        },
+    };
+</script>
+
+<style lang="scss" scoped></style>
+``` 
+
+`v-model` 其实就是一个语法糖, 它实际上是做了两步动作:
++ 绑定数据 `value`;
++ 触发输入事件 `input`;
+
+也就是说, 上面的代码等同于:
+
+```js
+<template>
+    <div class="content">
+        <input type="text" :value="username" @input="username = $event.target.value">
+        {{ username }}
+    </div>
+</template>
+
+<script>
+    export default {
+        data() {
+            return {
+                username:""
+            };
+        },
+        methods: {
+          
+        },
+    };
+</script>
+
+<style lang="scss" scoped></style>
+```
+
+明白了这一点, 我们就可以在自定义的组件中实现 `v-model` 双向数据绑定了;
+
+```js
+<template>
+    <div class="content">
+        <my-input type="text" v-model="username" />
+        {{ username }}
+    </div>
+</template>
+
+<script>
+import myInput from './my-input';
+export default {
+    data() {
+        return {
+            username:""
+        };
+    },
+    components:{'my-input': myInput},
+    methods: {
+
+    },
+};
+</script>
+
+<style lang="scss" scoped></style>
+```
+
+***my-input.vue***
+```js
+<template>
+    <div class="my-input">
+        <input type="text" :value="value" @input="handleInput">
+    </div>
+</template>
+
+<script>
+export default {
+    name:"my-input",
+    props:['value'],
+    methods:{
+        handleInput(e){
+            this.$emit('input',e.target.value)
+        }
+    }
+}
+</script>
+<style lang="scss" scoped></style>
+```
+
 #### 插槽
 插槽的概念很简单, 也就是一个 `slot` , 是组件的一块 `HTML` 模板, 这块模板显示不显示, 以及怎么样显示, 是由父组件决定的; 
 
 插槽模板是一个空的 `slot`, 它是一个空壳子, 因为它的显示与隐藏以及最后用什么样的 `html` 模板显示由父组件控制. 但是插槽显示的位置却由子组件自身决定, slot写在组件template的什么位置, 父组件传过来的模板将来就显示在什么位置;
+
+#### .sync 修饰符
+
+很多时候我们会通过 ` props ` 的方式将数据传递给子组件, 并且如果子组件内部要对 ` props ` 的状态进行修改的话, 还需要父组件传递一个函数来改变 `props` 的状态;
+
+```js
+<template>
+    <div class="content">
+        <dialog :show="isShow" @close="isShow = $event">
+            {{ message }}
+        </dialog>
+    </div>
+</template>
+
+<script>
+export default {
+    data() {
+        return {
+            isShow:false,
+			message:""
+        };
+    },
+    methods: {
+
+    },
+};
+</script>
+
+
+/*
+ * dialog 组件
+ */
+<template>
+    <div class="dialog" v-if="show">
+        <slot></slot>
+		<span class="close-btn" @click="$emit('close',false)">X</span>
+    </div>
+</template>
+
+<script>
+export default {
+    props:{
+        show:{
+            type:Boolean,
+            default:false
+        }
+    }
+    methods: {
+
+    },
+};
+</script>
+```
+
+这时候子组件通过 `emit` 派发一个事件给父组件接收, 父组件接收到之后去修改原来 `props` 的值; 这种情况比较常见, 但是代码比较冗余;
+
+`.sync` 修饰符内事件派发的名字约定好的必须是以 `update:` 为事件名, 后接需要改变的 `props`; 上面的代码就可以改造成:
+
+```js
+<template>
+    <div class="content">
+        <dialog :show.sync="isShow" >
+            {{ message }}
+        </dialog>
+    </div>
+</template>
+
+<script>
+export default {
+    data() {
+        return {
+            isShow:false,
+			message:""
+        };
+    },
+    methods: {
+
+    },
+};
+</script>
+
+
+/*
+ * dialog 组件  把 close 换成了 update:show 表示修改 show(props) 的值;
+ */
+<template>
+    <div class="dialog" v-if="show">
+        <slot></slot>
+		<span class="close-btn" @click="$emit('update:show',false)">X</span>
+    </div>
+</template>
+
+<script>
+export default {
+    props:{
+        show:{
+            type:Boolean,
+            default:false
+        }
+    }
+    methods: {
+
+    },
+};
+</script>
+```
+
 
 ##### 单个插槽、默认插槽、匿名插槽
 单个插槽其实也叫默认插槽, 或者是与具名插槽相对, 我们也可以叫匿名插槽, 因为它不用设置 `name` 属性; 单个插槽可以放置在组件的任意位置, 但是就像它的名字一样, 一个组件中只能有一个该类插槽. 相对应的, 具名插槽就可以有很多个, 只要名字 (name属性) 不同就可以了;
@@ -796,6 +1187,89 @@ export default{
 
 #### 自定义指令
 > [常用自定义指令](https://zhuanlan.zhihu.com/p/108308393)
+
+除了核心功能默认的一些内置指令, 如 `v-model`, `v-for`, `v-if` 等, Vue 也允许注册自定义指令; 自定义指令提供一下几个钩子函数:
+
+`bind`: 只调用一次, 指令第一次绑定到元素时调用, 在这里可以进行一次性初始化的设置;
+
+`inserted`: 被绑定元素插入父节点时调用; 
+
+`update`: 所在组件的 Vnode 更新时调用;
+
+`componentUpdate`: 指令所在的组件的 Vnode 和子 Vnode 全部更新时调用;
+
+`unbind`: 只调用一次, 指令与元素解绑时;
+
+用自定义指令实现一个管理后台按钮级别的权限控制:
+
+***src/directive/permission.js***
+```js
+import store from '@/store';
+
+/**
+ * v-permission 表示需要超级管理员才能显示的按钮, 加上这个指令, 如果不是超级管理员就不显示;
+ * @param {*} el
+ * @param {*} binding
+ */
+function checkAuthority(el, binding) {
+    const { value } = binding
+    const roles = store.getters && store.getters.userInfo;
+
+    if(roles !== binding.value){
+        el.parentNode && el.parentNode.removeChild(el)
+    }
+}
+
+export default {
+    inserted(el, binding) {
+        checkAuthority(el, binding)
+    },
+    update(el, binding) {
+        checkAuthority(el, binding)
+    },
+    componentUpdated(el, binding){
+        checkAuthority(el, binding)
+    }
+}
+```
+
+***src/directive/index.js***
+```js
+
+import permission from './permission'
+
+const install = function (Vue) {
+    Vue.directive('permission', permission)
+}
+
+if (window.Vue) {
+    window['permission'] = permission
+    Vue.use(install); // eslint-disable-line
+}
+
+permission.install = install
+export default permission;
+```
+
+定义好之后, 我们可以在 `main.js` 中全局注册指令, 也可以在某个组件内单独使用这个指令;
+
+***main.js***
+```js
+import permission from '@/directive/permission';
+
+Vue.use(permission);
+```
+
+在组件内使用的时候就可以直接 `v-permission="'admin'"` 来使用指令了;
+
+```html
+<template>
+	<div class="content">
+		<!-- 表示当前按钮只有在管理员权限为 admin 时显示 -->
+		<button v-permission="'admin'">创建</button>
+	</div>
+</template>
+```
 
 #### Vue.use() API
  
@@ -1439,6 +1913,57 @@ export default {
 这样, 就可以将关键字预渲染到 .html 页面中去了;
 
 
+#### Vue css 深度选择器
+
+当 `style` 标签有 scoped 属性的时候, 它的 css 只作用于当前组件中的元素;
+
+```css
+<style scoped>
+	.red {
+		color:red;
+	}
+</style>
+```
+其原理是通过使用 PostCSS 来实现以下转换的:
+
+```css
+<template>
+	<div class="red" data-v-f3f3eg9e></div>
+</template>
+
+<style>
+	.red[data-v-f3f3eg9e]{
+		color:red;
+	}
+</style>
+```
+如果想要修改一些当前组件外的样式, 可以通过混写的方式实现, 也就是组件内写两个 style, 一个带有 scoped 属性一个没有;
+
+```css
+/* 组件内样式 */
+<style scoped>
+	.red {
+		color:red;
+	}
+</style>
+
+/* 全局样式 */
+<style>
+	.red {
+		color:red;
+	}
+</style>
+```
+
+但是这样做有一个弊端就是全局样式会对其他的相同类名的元素也会起作用, 这个时候就需要使用深度选择器; 
+
+```css
+<style scoped>
+	#app >>> a {
+		color:red;
+	}
+</style>
+```
 
 
 

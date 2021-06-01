@@ -184,6 +184,147 @@
         }
     ```
 
++ 手写一个 Promise 函数
+
+    ```js
+        function Promise(excutor) {
+            let self = this
+            self.status = 'pending'
+            self.value = null
+            self.reason = null
+            self.onFulfilledCallbacks = []
+            self.onRejectedCallbacks = []
+
+            function resolve(value) {
+                if (self.status === 'pending') {
+                    self.value = value
+                    self.status = 'fulfilled'
+                    self.onFulfilledCallbacks.forEach(item => item())
+                }
+            }
+
+            function reject(reason) {
+                if (self.status === 'pending') {
+                    self.reason = reason
+                    self.status = 'rejected'
+                    self.onRejectedCallbacks.forEach(item => item())
+                }
+            }
+            try {
+                excutor(resolve, reject)
+            } catch (err) {
+                reject(err)
+            }
+        }
+
+        Promise.prototype.then = function (onFulfilled, onRejected) {
+            onFulfilled = typeof onFulfilled === 'function' ? onFulfilled :  function (data) {resolve(data)}
+            onRejected = typeof onRejected === 'function' ? onRejected : function (err) {throw err}
+            let self = this;
+            if (self.status === 'fulfilled') {
+                return new Promise((resolve, reject) => {
+                    try {
+                        let x = onFulfilled(self.value)
+                        if (x instanceof Promise) {
+                            x.then(resolve, reject)
+                        } else {
+                            resolve(x)
+                        }
+                    } catch (err) {
+                        reject(err)
+                    }
+                })
+            }
+            if (self.status === 'rejected') {
+                return new Promise((resolve, reject) => {
+                try {
+                    let x = onRejected(self.reason)
+                    if (x instanceof Promise) {
+                        x.then(resolve, reject)
+                    } else {
+                        resolve(x)
+                    }
+                } catch (err) {
+                    reject(err)
+                }
+                })
+            }
+            if (self.status === 'pending') {
+                return new Promise((resolve, reject) => {
+                    self.onFulfilledCallbacks.push(() => {
+                    let x = onFulfilled(self.value)
+                    if (x instanceof Promise) {
+                        x.then(resolve, reject)
+                    } else {
+                        resolve(x)
+                    }
+                })
+                self.onRejectedCallbacks.push(() => {
+                    let x = onRejected(self.reason)
+                    if (x instanceof Promise) {
+                        x.then(resolve, reject)
+                    } else {
+                        resolve(x)
+                    }
+                })
+                })
+            }
+        }
+
+        Promise.prototype.catch = function (fn) {
+            return this.then(null, fn)
+        }
+        
+        function getJson(){
+            return new Promise((resolve,reject)=>{
+                var xhr = new XMLHttpRequest();
+
+                xhr.open('get',true);
+                xhr.onreadystatechange = function(status){
+                    resolve(status)
+                }
+                xhr.send('http://127.0.0.1:8000/2.html');
+            })
+        }
+
+        var res = getJson();
+        console.log(res);
+        res.then(result =>{
+            console.log(result);
+        })
+    ```
+
++ 手写一个归并排序
+
+    ```js
+        function mergeSort(arr) {
+            var len = arr.length;
+            if (len > 1) {
+                var index = Math.floor(len / 2);
+                var left = arr.slice(0, index);
+                var right = arr.slice(index);
+
+                return merge(mergeSort(left), mergeSort(right));
+            } else {
+                return arr;
+            }
+        }
+
+        function merge(left, right) {
+            var arr = [];
+            while (left.length && right.length) {
+                if (left[0] < right[0]) {
+                    arr.push(left.shift());
+                } else {
+                    arr.push(right.shift());
+                }
+            }
+            return [...arr, ...left, ...right];
+        }
+
+        var array = [0, 5, 6, 4, 8, 93, 7];
+        console.log(mergeSort(array));
+    ```
 
 
 + 节流和防抖的区别以及作用
@@ -713,6 +854,8 @@
     ```
 
 
+
+
 + Vue router 中导航的钩子函数
 
     + 全局导航钩子
@@ -866,7 +1009,9 @@
 
 
 
-### http 缓存
+### http 
+
++ http缓存
 
  浏览器发送请求前, 根据请求头的expires和cache-control判断是否命中(包括是否过期) 强缓存策略, 如果命中, 直接从缓存获取资源, 并不会发送请求. 如果没有命中, 则进入下一步.  2. 没有命中强缓存规则, 浏览器会发送请求, 根据请求头的last-modified和etag判断是否命中协商缓存, 如果命中, 直接从缓存获取资源. 如果没有命中, 则进入下一步.  3. 如果前两步都没有命中, 则直接从服务端获取资源. 
 
@@ -901,4 +1046,33 @@
 
 
 
++ http 常用状态码
+
+    - 100   继续, 继续响剩余部分, 进行提交请求; 如已完成, 可忽略;
+    - 200   成功, 服务器处理请求成功;
+    - 301   永久移动, 请求资源已经永久移动至新的位置;
+    - 302   临时移动, 请求资源临时移动至最新的位置;
+    - 401   未授权, 要求身份验证;
+    - 403   禁止, 请求被拒绝;
+    - 404   资源未找到;
+    - 500   服务器内部错误, 无法完成请求;
+    - 503   服务不可用, 临时服务过载, 无法处理请求;
+
+
+
++ http 2.0
+
+    + 采用二进制流格式传输数据: 在 http/2.0 中, 基本的协议单位是祯, 每个数据流均是以消息的形式发送, 消息由一个或者是多个帧组合而成; 帧的内容包括: 长度 (Length),  类型 (Type), 标记 (Flags), 保留字段 (R), 流标识符 (Stream Identifier) 和帧主体 (Frame Payload);
+    + 多路复用: 在 http/1.0 中, 如果需要并发多个请求, 则必须创建多个 TCP 链接, 并且浏览器对于单个域名的请求有响应的数量限制, 一般为 6 个; http/2.0 重新定义了底层的 http语义映射, 允许在同一个链接上使用请求和响应双向数据流, 至此, 同一个域名只需要占用一个 TCP 连接, 通过数据流 (stream) 以帧为基本代为, 从而从根本上解决了因频繁创建连接产生的延迟, 减少了内存消耗, 提升了性能;
+    + 流的优先级: 在 http/2.0 中可以为每一个数据流设置优先级, 高优先级的流会被服务优先处理并返回给客户端, 同时, 流的优先级允许根据场景的不同进行动态设置;
+    + 首部压缩:  http/1.0 中, 前端性能优化法则中出现过一条建议 -- 禁止滥用 cookie, 同时建议将静态资源迁移到独立的域名上, 其中一个关键的优化点是压缩请求头部大小, 随着 web 应用功能越来越复杂, 主域名下各种各样的业务加入五花八门的 cookie, 对于一般的图片, 样式, 脚本文件无需在后台了解其与用户特征相关的信息, 而客户端频繁发送此类数据产生了极大的浪费; http/2.0 中引入了 HPACK 压缩首部数据;
+    + 服务端推送: 服务端主动推送与当前请求相关的内容, 例如: 可以在请求 HTML 文档的时候, 一并推送与之关联的静态资源文件; 同时, 服务端推送遵循同源策略, 可以被浏览器缓存, 实现多页面共享缓存资源; 极大的提升了性能;
+
+
+
+
+
+### nodejs
+
++ 
 
