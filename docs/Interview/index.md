@@ -218,8 +218,12 @@
         }
 
         Promise.prototype.then = function (onFulfilled, onRejected) {
-            onFulfilled = typeof onFulfilled === 'function' ? onFulfilled :  function (data) {resolve(data)}
-            onRejected = typeof onRejected === 'function' ? onRejected : function (err) {throw err}
+            onFulfilled = typeof onFulfilled === 'function' ? onFulfilled : function (data) {
+                resolve(data)
+            }
+            onRejected = typeof onRejected === 'function' ? onRejected : function (err) {
+                throw err
+            }
             let self = this;
             if (self.status === 'fulfilled') {
                 return new Promise((resolve, reject) => {
@@ -237,36 +241,36 @@
             }
             if (self.status === 'rejected') {
                 return new Promise((resolve, reject) => {
-                try {
-                    let x = onRejected(self.reason)
-                    if (x instanceof Promise) {
-                        x.then(resolve, reject)
-                    } else {
-                        resolve(x)
+                    try {
+                        let x = onRejected(self.reason)
+                        if (x instanceof Promise) {
+                            x.then(resolve, reject)
+                        } else {
+                            resolve(x)
+                        }
+                    } catch (err) {
+                        reject(err)
                     }
-                } catch (err) {
-                    reject(err)
-                }
                 })
             }
             if (self.status === 'pending') {
                 return new Promise((resolve, reject) => {
                     self.onFulfilledCallbacks.push(() => {
-                    let x = onFulfilled(self.value)
-                    if (x instanceof Promise) {
-                        x.then(resolve, reject)
-                    } else {
-                        resolve(x)
-                    }
-                })
-                self.onRejectedCallbacks.push(() => {
-                    let x = onRejected(self.reason)
-                    if (x instanceof Promise) {
-                        x.then(resolve, reject)
-                    } else {
-                        resolve(x)
-                    }
-                })
+                        let x = onFulfilled(self.value)
+                        if (x instanceof Promise) {
+                            x.then(resolve, reject)
+                        } else {
+                            resolve(x)
+                        }
+                    })
+                    self.onRejectedCallbacks.push(() => {
+                        let x = onRejected(self.reason)
+                        if (x instanceof Promise) {
+                            x.then(resolve, reject)
+                        } else {
+                            resolve(x)
+                        }
+                    })
                 })
             }
         }
@@ -274,13 +278,13 @@
         Promise.prototype.catch = function (fn) {
             return this.then(null, fn)
         }
-        
-        function getJson(){
-            return new Promise((resolve,reject)=>{
+
+        function getJson() {
+            return new Promise((resolve, reject) => {
                 var xhr = new XMLHttpRequest();
 
-                xhr.open('get',true);
-                xhr.onreadystatechange = function(status){
+                xhr.open('get', true);
+                xhr.onreadystatechange = function (status) {
                     resolve(status)
                 }
                 xhr.send('http://127.0.0.1:8000/2.html');
@@ -405,6 +409,17 @@
     + 区别:  防抖是将多次执行变为最后一次执行, 节流是将多次执行变成每隔一段时间执行;
 
 
++ EventLoop 
+
+    ![Material](/res/eventlLoop.png)
+
+    + 主线程自上而下依次执行所有代码;
+    + 同步任务直接进入到主线程被执行;
+    + 异步任务进入到Event Table, 当异步任务有结果后, 将相对应的回调函数进行注册, 放入Event Queue;
+    + 主线程任务执行完空闲下来后, 从Event Queue(FIFO)中读取任务, 放入主线程执行;
+    + 放入主线程的Event Queue任务继续从第一步开始, 如此循环执行;
+
+
 + 宏任务和微任务
 
     + 宏任务：当前调用栈中执行的任务称为宏任务.  ( 主代码快, 定时器等等 ) . 
@@ -422,6 +437,87 @@
     + get请求只URL编码, post支持多种编码方式
     + get请求的记录会留在历史记录中, post请求不会留在历史记录
     + get只支持ASCII字符, post没有字符类型限制
+
+
+
++ js 中的堆栈
+
+    + 栈内存中存放的是基本类型的数据: Number, String, Undefined, Boolean, Null;
+    + 堆内存中存放的是引用类型的数据: Function, Array, Object;
+
+
+
++ 实现一个网络请求模块, 要求进行中的网络请求数量不能超过 10 个, 超过 10 个的部分进行队列, 等待前面的请求结束之后陆续发送队列中的请求;
+
+    ```js
+        class Queue{
+            constructor(){
+                this.queue = [];
+            }
+            enqueue(item){
+                this.queue.push(item);
+            }
+            dequeue(){
+                return this.queue.shift();
+            }
+        }
+
+        class LimitRequest{
+            constructor(limit = 10){
+                this.lmit = lmit;
+                this.count = 0;
+                this.queue = new Queue();
+            }
+
+            request(ajax, ...args){
+                return new Promise((resolve,reject)=>{
+                    var task = this.createTask(ajax,args,resolve,reject);
+                    if(this.count >= this.lmit){
+                        this.queue.enqueue(task);
+                    }else{
+                        task();
+                    }
+                })
+            }
+
+            createTask(ajax,args,resolve,reject){
+                return ()=>{
+                    this.count ++;
+                    ajax(...args).then(resolve).catch(reject).finally(()=>{
+                        this.count --;
+                        if(this.queue.length > 0){
+                            this.queue.dequeue()();
+                        }
+                    })
+                }
+            }
+
+        }
+
+        const limitReq = new LimitRequest(10);
+        const axios = require("axios");
+        
+        function ajax(url,params,type = 'get', ){
+            return limitReq.request(axios[type],url,params);
+        } 
+    ```
+
+
++ 深拷贝和浅拷贝
+
+    + 浅拷贝是对对象地址的复制, 并没有开辟新的栈, 也就是复制的结果是两个对象指向同一个地址, 修改其中一个对象的属性, 则另一个对象的属性也会改变;
+    + 深靠背则是开辟新的栈, 两个对象对应两个不同的地址, 修改一个对象的属性, 不会改变另一个对象的属性;  JSON.parse(JSON.stringify());
+
+
+
++ for of && for in 的区别
+
+    + for in 一般用于遍历对象的可枚举属性. 以及对象从构造函数原型中继承的属性. 对于每个不同的属性, 语句都会被执行;
+    + 不建议使用for in 遍历数组, 因为输出的顺序是不固定的;
+    + 如果迭代的对象的变量值是null或者undefined, for in不执行循环体, 建议在使用for in循环之前, 先检查该对象的值是不是null或者undefined
+
+    + for…of 语句在可迭代对象(包括 Array,Map,Set,String,TypedArray,arguments 对象等等)上创建一个迭代循环, 调用自定义迭代钩子, 并为每个不同属性的值执行语句;
+
 
 
 ### Typescript
@@ -900,6 +996,42 @@
     + 和 Vue 的 key 的作用基本一样, react 的 diff 算法是把 key 当成唯一 id 然后比对组件的 value 来确定是否需要更新的, 所以如果没有key, react将不会知道该如何更新组件
 
 
+ + render 函数中 return 如果没有使用 () 会有什么问题;
+
+    + 我们在使用 JSX 语法书写react代码时, babel会将 JSX 语法编译成js, 同时会在每行自动添加分号 `;` , 如果return后换行了, 那么就会变成 `return;` 一般情况下会报错;
+
+
++ componentWillUpdate 可以直接修改 state 的值吗?
+
+    + 1: 不行, 这样会导致无限循环报错.
+    + 2：在 react 中直接修改 state, render 函数不会重新执行渲染, 应使用 setState 方法进行修改;
+
+
++ 说说你对React的渲染原理的理解
+
+    + react 采用 JSX 语法, 其实本质上是 `React.createElement` 的语法糖, `React.createElement` 这个方法会创建一个 json 格式的虚拟 DOM, `createElement()`方法会先通过遍历 `config` 获取所有的参数, 然后获取其子节点以及默认的 `props` 的值, 然后将值传递给 `ReactElement()` 调用并返回 JS 对象; 
+
+    + ReactDOM.render() 创建更新队列, 调度更新, diff 算法对比 nextRenderElement 和 prevElement; 更新节点 
+
+
++ 什么是渲染劫持
+
+    + 其实就是一个高阶组件, 通过组件的 state, props 控制 render 函数的输出内容;
+
+
++ Context
+
+    + React 使用单向数据流的设计模式进行数据管理, 也就是说父子组件间的数据通信需要依靠 `state` 或 `props` 进行传递;
+    + Context 允许状态数据跨层级传递, 从而避免部分冗余的代码逻辑, 实现数据透传;
+    + Context 对象提供的生产者组件, 相当于父组件. 通过赋初值, 将state、props分发给属于该 `Provider`的所有 `Consumer`;
+
+
++ super()和super(props)有什么区别
+    
+    +  如果你用到了 constructor 就必须写super(), 是用来初始化this的, 可以绑定事件到this上;
+    +  如果你在 constructor 中要使用this.props, 就必须给super加参数: super(props);
+
+
 
 + refs 是什么, 使用时需要注意什么
 
@@ -1013,36 +1145,36 @@
 
 + http缓存
 
- 浏览器发送请求前, 根据请求头的expires和cache-control判断是否命中(包括是否过期) 强缓存策略, 如果命中, 直接从缓存获取资源, 并不会发送请求. 如果没有命中, 则进入下一步.  2. 没有命中强缓存规则, 浏览器会发送请求, 根据请求头的last-modified和etag判断是否命中协商缓存, 如果命中, 直接从缓存获取资源. 如果没有命中, 则进入下一步.  3. 如果前两步都没有命中, 则直接从服务端获取资源. 
+    浏览器发送请求前, 根据请求头的expires和cache-control判断是否命中(包括是否过期) 强缓存策略, 如果命中, 直接从缓存获取资源, 并不会发送请求. 如果没有命中, 则进入下一步.  2. 没有命中强缓存规则, 浏览器会发送请求, 根据请求头的last-modified和etag判断是否命中协商缓存, 如果命中, 直接从缓存获取资源. 如果没有命中, 则进入下一步.  3. 如果前两步都没有命中, 则直接从服务端获取资源. 
 
-+ 强缓存
-    + 不会向服务器发送请求, 直接从缓存中读取资源, 在chrome控制台的Network选项中可以看到该请求返回200的状态码, 并且size显示from disk cache或from memory cache两种
-    + Expires response header里的过期时间, 浏览器再次加载资源时, 如果在这个过期时间内, 则命中强缓存
-    + Cache-Control 当值设为max-age=300时, 则代表在这个请求正确返回时间( 浏览器也会记录下来) 的5分钟内再次加载资源, 就会命中强缓存
-    + 区别：Expires 是http1.0的产物, Cache-Control是http1.1的产物两者同时存在的话, Cache-Control优先级高于Expires Expires其实是过时的产物, 现阶段它的存在只是一种兼容性的写法
-+ 协商缓存
-    + 向服务器发送请求, 服务器会根据这个请求的request header的一些参数来判断是否命中协商缓存, 如果命中, 则返回 304 状态码并带上新的response header通知浏览器从缓存中读取资源
-    + ETag和If-None-Match Etag是上一次加载资源时, 服务器返回的response header, 是对该资源的一种唯一标识只要资源有变化, Etag就会重新生成  服务器接受到If-None-Match的值后, 会拿来跟该资源文件的Etag值做比较, 如果相同, 则表示资源文件没有发生改变, 命中协商缓存
-    + Last-Modified和If-Modified-Since Last-Modified是该资源文件最后一次更改时间,服务器会在response header里返回
-+ 共同点：都是从客户端缓存中读取资源; 区别是强缓存不会发请求, 协商缓存会发请求. 
-+ 浏览器缓存过程
-    + 浏览器第一次加载资源, 服务器返回200, 浏览器将资源文件从服务器上请求下载下来, 并把response header及该请求的返回时间(要与Cache-Control和Expires对比)一并缓存
-    + 下一次加载资源时, 先比较当前时间和上一次返回200时的时间差, 如果没有超过Cache-Control设置的max-age, 则没有过期, 命中强缓存, 不发请求直接从本地缓存读取该文件( 如果浏览器不支持HTTP1.1, 则用Expires判断是否过期) 
-    + 如果时间过期, 则向服务器发送header带有If-None-Match和If-Modified-Since 的请求; 
-    + 服务器收到请求后, 优先根据Etag的值判断被请求的文件有没有做修改, Etag值一致则没有修改, 命中协商缓存, 返回304; 如果不一致则有改动, 直接返回新的资源文件带上新的Etag值并返回 200; 
-    + 如果服务器收到的请求没有Etag值, 则将If-Modified-Since和被请求文件的最后修改时间做比对, 一致则命中协商缓存, 返回304; 不一致则返回新的last-modified和文件并返回 200; 
-+ 前端开发设置不缓存
-    + js, css 等资源后加随机数
-    ```html
-        <script type=“text/javascript” src=“/js/test.js?+Math.random()”></script> 
-    ```
-    + 设置html页面不让浏览器缓存的方法  
-    ```html
-        <meta http-equiv="pragma" content="no-cache"> 
-        <meta http-equiv="Cache-Control" content="no-cache, must-revalidate"> 
-        <meta http-equiv="expires" content="Wed, 26 Feb 1997 00:00:00 GMT">
-    ```
-![Material](/res/cache.png)
+    + 强缓存
+        + 不会向服务器发送请求, 直接从缓存中读取资源, 在chrome控制台的Network选项中可以看到该请求返回200的状态码, 并且size显示from disk cache或from memory cache两种
+        + Expires response header里的过期时间, 浏览器再次加载资源时, 如果在这个过期时间内, 则命中强缓存
+        + Cache-Control 当值设为max-age=300时, 则代表在这个请求正确返回时间( 浏览器也会记录下来) 的5分钟内再次加载资源, 就会命中强缓存
+        + 区别：Expires 是http1.0的产物, Cache-Control是http1.1的产物两者同时存在的话, Cache-Control优先级高于Expires Expires其实是过时的产物, 现阶段它的存在只是一种兼容性的写法
+    + 协商缓存
+        + 向服务器发送请求, 服务器会根据这个请求的request header的一些参数来判断是否命中协商缓存, 如果命中, 则返回 304 状态码并带上新的response header通知浏览器从缓存中读取资源
+        + ETag和If-None-Match Etag是上一次加载资源时, 服务器返回的response header, 是对该资源的一种唯一标识只要资源有变化, Etag就会重新生成  服务器接受到If-None-Match的值后, 会拿来跟该资源文件的Etag值做比较, 如果相同, 则表示资源文件没有发生改变, 命中协商缓存
+        + Last-Modified和If-Modified-Since Last-Modified是该资源文件最后一次更改时间,服务器会在response header里返回
+    + 共同点：都是从客户端缓存中读取资源; 区别是强缓存不会发请求, 协商缓存会发请求. 
+    + 浏览器缓存过程
+        + 浏览器第一次加载资源, 服务器返回200, 浏览器将资源文件从服务器上请求下载下来, 并把response header及该请求的返回时间(要与Cache-Control和Expires对比)一并缓存
+        + 下一次加载资源时, 先比较当前时间和上一次返回200时的时间差, 如果没有超过Cache-Control设置的max-age, 则没有过期, 命中强缓存, 不发请求直接从本地缓存读取该文件( 如果浏览器不支持HTTP1.1, 则用Expires判断是否过期) 
+        + 如果时间过期, 则向服务器发送header带有If-None-Match和If-Modified-Since 的请求; 
+        + 服务器收到请求后, 优先根据Etag的值判断被请求的文件有没有做修改, Etag值一致则没有修改, 命中协商缓存, 返回304; 如果不一致则有改动, 直接返回新的资源文件带上新的Etag值并返回 200; 
+        + 如果服务器收到的请求没有Etag值, 则将If-Modified-Since和被请求文件的最后修改时间做比对, 一致则命中协商缓存, 返回304; 不一致则返回新的last-modified和文件并返回 200; 
+    + 前端开发设置不缓存
+        + js, css 等资源后加随机数
+        ```html
+            <script type=“text/javascript” src=“/js/test.js?+Math.random()”></script> 
+        ```
+        + 设置html页面不让浏览器缓存的方法  
+        ```html
+            <meta http-equiv="pragma" content="no-cache"> 
+            <meta http-equiv="Cache-Control" content="no-cache, must-revalidate"> 
+            <meta http-equiv="expires" content="Wed, 26 Feb 1997 00:00:00 GMT">
+        ```
+    ![Material](/res/cache.png)
 
 
 
@@ -1070,9 +1202,94 @@
 
 
 
++ http 工作过程
+
+    + 解析地址: 从 url 中解析出 协议名、主机名、端口、对象路径等部分;
+    + 封装 http 请求数据包: 把以上部分结合本机自己的信息, 封装成一个HTTP请求数据包;
+    + 封装成TCP包, 建立TCP连接(TCP的三次握手): 客户端 (Web浏览器) 要通过网络与服务器建立连接;
+    + 客户机发送请求命令:  建立连接后, 客户机发送一个请求给服务器, 请求方式的格式为: 统一资源标识符 (URI：Uniform Resource Identifier)、协议版本号, 后边是MIME信息包括请求修饰符、客户机信息和可能的内容
+    + 服务器响应: 服务器接到请求后, 给予相应的响应信息, 其格式为一个状态行, 包括信息的协议版本号、一个成功或错误的代码, 后边是MIME信息包括服务器信息、实体信息和可能的内容。实体消息是服务器向浏览器发送头信息后, 它会发送一个空白行来表示头信息的发送到此结束, 接着, 它就以Content-Type应答头信息所描述的格式发送用户所请求的实际数据;
+    + 服务器关闭TCP连接: 一般情况下, 一旦Web服务器向浏览器发送了请求数据, 它就要关闭TCP连接;
+
+
+
 
 
 ### nodejs
 
-+ 
++ Nodejs 集群
 
+    使用 `cluster` 模块创建多个分享端口的进程, 每一个进程使用一个系统核心, 充分利用计算机多核特性, 让每一个子进程都实现了HTTP server, 并监听指定的端口;
+
+    ```js
+    var cluster = require("cluster");
+    var http = require("http");
+    var numCPUs = require("os").cpus().length;
+    var port = parseInt(process.argv[2]);
+
+    if (cluster.isMaster) {
+        for (var i = 0; i < numCPUs; i++) {
+            cluster.fork();
+        }
+
+        cluster.on("exit", function(worker, code, signal) {
+            cluster.fork();
+        });
+    } else {
+        http.createServer(function(request, response) {
+            console.log("Request for:  " + request.url);
+            response.writeHead(200);
+            response.end("hello world\n");
+        }).listen(port);
+    }
+    ```
+
++ Nodejs 多线程
+
+    + Nodejs 多线程种类: Node.js 中有三类线程 (child_process 和 cluster 的实现均为进程)
+        - event loop的主线程
+        - libuv 的异步 I/O 线程池
+        - worker_threads 的线程
+
+    + `worker_threads` 模块给 node 提供了多线程功能; worker_threads 也是 master-work 模型, 有主线程和工作线程之分;
+
+        ```js
+        const { Worker, isMainThread, parentPort, workerData } = require('worker_threads');
+
+        if (isMainThread) {
+            module.exports = function parseJSAsync(script) {
+                return new Promise((resolve, reject) => {
+                    const worker = new Worker(__filename, {
+                        workerData: script
+                    });
+                    worker.on('message', resolve);
+                    worker.on('error', reject);
+                    worker.on('exit', (code) => {
+                        if (code !== 0) reject(new Error(`工作线程使用退出码 ${code} 停止`));
+                    });
+                });
+            };
+        } 
+        else {
+            const { parse } = require('一些 js 解析库');
+            const script = workerData;
+            parentPort.postMessage(parse(script));
+        }
+        ```
+    + 线程之间的通信
+
+        `parentPort` 主要用于主子线程通信, 通过经典的 on('message'),  postMessage形式;
+
+        ```js
+        if (isMainThread) {
+            const worker = new Worker(__filename);
+            worker.once('message', (message) => {
+                console.log(message); 
+            });
+            worker.postMessage('Hello, world!');
+        } else {
+            parentPort.once('message', (message) => {
+                parentPort.postMessage(message);
+            });
+        }
+        ```

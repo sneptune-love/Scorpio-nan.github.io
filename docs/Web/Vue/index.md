@@ -1964,7 +1964,19 @@ export default {
 	}
 </style>
 ```
+使用 `>>>` 操作符可以使 scoped 样式中的一个选择器能够作用的更深;
 
+> 注意: sass 之类的处理器无法正确的解析 `>>>` , 这种情况下可以使用  `/deep/`, 或者是 `::v-deep` 操作符代替;
+
+```css
+<style scoped lang="scss">
+	#app {
+		/deep/ a{
+			color:red;
+		}
+	}
+</style>
+```
 
 
 
