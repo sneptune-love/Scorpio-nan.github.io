@@ -2181,4 +2181,52 @@ pm2 link ibt2pe6ax8yetiz vawrb0621ly52v3
 执行完成, 重新 `pm2 start process.yml` 就可以在网站上看到实时监控了;
 
 
+### Nodejs 实例工具
 
+#### 多线程启动服务
+
+接触到公司的一个 qiankun 的项目, 前端启动 node 服务的时候一次会需要启动多个服务, 微前端对这些服务都有依赖关系;
+
+***startServer.js***
+```js
+const { exec } = require('child_process');
+const path = require('path');
+
+/*
+ * 根据目录来运行 cmd 命令; 进入到目录下面执行 webpack 的启动命令;
+ **/
+let cmds = [
+	{
+		path:"project-arctic/packages/business-component",
+		cmd:"yarn start:lib"
+	},{
+		path:"project-DCIS",
+		cmd:"yarn start"
+	},{
+		path:"",
+		cmd:"w2 start"
+	}
+]
+
+function resolve(url){
+	return path.resolve(url);
+}
+
+function runCmd(cmds){
+	var item = cmds.pop();
+	exec(item.cmd,{ cwd: resolve(item.path) },function(err,stdout,stderr){
+		console.log("err",err);
+		console.log("stdout",stdout);
+		console.log("stderr",stderr);
+	})
+	if(cmds.length){
+		runCmd(cmds);
+	}
+}
+
+runCmd(cmds);
+```
+```bash
+# 还可以将下面的命令保存成批处理文件 .bat 
+node startServer.js
+```
