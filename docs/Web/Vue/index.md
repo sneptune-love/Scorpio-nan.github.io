@@ -14,11 +14,18 @@
 > 安装和创建项目:
 
 `````bash
+# vue-cli@2x 版本
 npm install vue-cli -g
 
-vue create my-project               // `vue-cli@3x `
+# `vue-cli@2x `
+vue init webpack my-project  
+				
 
-vue init webpack my-project         // `vue-cli@2x `
+# vue-cli@3x 版本
+npm install @vue/cli -g	
+
+# `vue-cli@3x `
+vue create my-project                
 
 `````
 安装的时候, ` bash ` 终端会有提示是否要使用 ` vuex ` , ` e2e ` , ` Eslint ` 等插件工具, 这里我们可以通过项目的复杂程度判断是否需要安装 ; 
