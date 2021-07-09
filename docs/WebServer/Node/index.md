@@ -76,10 +76,10 @@ rs.pipe(ws);
 
 ````bash
 # 安装 git 下载需要的依赖库
-$ npm install download-git-repo -s
+npm install download-git-repo -s
 
 # 为了让下载过程看起来平滑一点, 使用进度条库
-$ npm install ora -s
+npm install ora -s
 ````
 
 ````js
@@ -168,6 +168,15 @@ koa2 完全使用 Promise 并配合 async 来实现异步;
 ````bash
 npm install koa -S
 ````
+我们还可以直接使用 koa 的脚手架来创建项目;
+
+```bash
+# koa 脚手架工具
+npm install -g koa-generator
+# 通过脚手架创建项目, -e 代表的是用 ejs 作为模板引擎
+koa2 -e project
+```
+
 #### 中间件机制、请求、响应处理
 
 Koa中间件机制: Koa中间件机制就是函数式组合概念 `Compose` 的概念, 将一组需要顺序执行的函数复合为一个函数, 外层函数的参数实际是内层函数的返回值. 洋葱圈模型可以形象表示这种机制
