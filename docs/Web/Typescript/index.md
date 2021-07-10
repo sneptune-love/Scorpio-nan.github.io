@@ -279,7 +279,7 @@ console.log(Person.sex);
 
 #### 抽象类
 
-`abstract` 关键字定义的抽象类, 这个类要求继承它的之类必需实现抽象类的抽象方法;
+`abstract` 关键字定义的抽象类, 这个类要求继承它的子类必须实现抽象类的抽象方法;
 
 ```typescript
 abstract class Animal{
