@@ -95,6 +95,27 @@ p{
 #{ };
 ```
 
+#### prefix
+
+通常会有一些带前缀的 class 类名, 就可以用 `&` 来进行前缀类名的补充了;
+
+```css
+$classfix:"flex";
+	
+.#{$classfix}{
+    &-layout:{
+        display:flex;
+    }
+    &-column:{
+        flex-direction: column;
+    }
+    &-center{
+        justify-content: center;
+        align-items: center;
+    }
+}
+```
+
 #### 循环控制
 
 ```scss

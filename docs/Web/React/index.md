@@ -1,12 +1,7 @@
 ### 概述
-[react 揭秘](https://react.iamkasong.com/#%E7%AB%A0%E8%8A%82%E5%88%97%E8%A1%A8)
-[react 小书](http://huziketang.mangojuice.top/books/react/lesson1)
-[react redux](http://cn.redux.js.org/docs/basics/UsageWithReact.html)
-[react router](http://react-guide.github.io/react-router-cn/docs/Introduction.html)
-[mobx](https://cn.mobx.js.org/)
-[dva](https://dvajs.com/guide/concepts.html)
-[dva知识地图](https://dvajs.com/knowledgemap/#%E5%BC%82%E6%AD%A5%E8%AF%B7%E6%B1%82)
-[react hooks](https://juejin.cn/post/6850418117534253069)
+
+[![react 揭秘](https://img.shields.io/static/v1?label=react%20揭秘&message=react%20揭秘&color=brightgreen)](https://react.iamkasong.com/#%E7%AB%A0%E8%8A%82%E5%88%97%E8%A1%A8)  [![react 小书](https://img.shields.io/static/v1?label=react%20小书&message=react%20小书&color=orange)](http://huziketang.mangojuice.top/books/react/lesson1)  [![react redux](https://img.shields.io/static/v1?label=react%20redux&message=react%20redux&color=blue)](http://cn.redux.js.org/docs/basics/UsageWithReact.html)  [![react router](https://img.shields.io/static/v1?label=react%20router&message=react%20router&color=blueviolet)](http://react-guide.github.io/react-router-cn/docs/Introduction.html)  [![mobx](https://img.shields.io/static/v1?label=mobx&message=mobx&color=ff69b4)](https://cn.mobx.js.org/)  [![dva](https://img.shields.io/static/v1?label=dva&message=dva&color=red)](https://dvajs.com/guide/concepts.html)  [![dva知识地图](https://img.shields.io/static/v1?label=dva%20知识地图&message=dva%20知识地图&color=yellow)](https://dvajs.com/knowledgemap/#%E5%BC%82%E6%AD%A5%E8%AF%B7%E6%B1%82)  [![react hooks](https://img.shields.io/static/v1?label=react%20hooks&message=react%20hooks&color=informational)](https://juejin.cn/post/6850418117534253069)
+
 
 > 这里记录的是 `react` 开发中遇到的问题, [`react-native`](docs/Web/React/react-native.md)环境;
 
@@ -2874,4 +2869,5 @@ class App extends Component{
     }
 }
 ```
+
 

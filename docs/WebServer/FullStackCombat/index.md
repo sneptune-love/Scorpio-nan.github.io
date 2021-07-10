@@ -1699,5 +1699,392 @@ methods:{
 }
 ```
 
+### SSR
+
+#### 配置环境
+
+1. 新建一个 SSR-CAMP 目录, 进入目录下面执行:
+
+```bash
+npm init
+```
+然后在目录下面新建一个 src/App.js, 内容如下:
+
+***src/App.js***
+```js
+import React from 'react';
+
+function App(){
+    return <h1> 这是一个 SSR 服务端渲染应用 </h1>
+}
+
+export default App;
+```
+
+2. 接下来我们如果需要 node 去支持, 还需要在根目录下面新建一个 `webpack.server.js`, 这个是用来做服务端的配置;
+
+***webpack.server.js***
+```js
+const path = require('path');
+const nodeExternals = require('webpack-node-externals');
+
+
+module.exports = {
+    target:"node",
+    mode:"development",
+    entry:"./server/index.js",
+    externals: [nodeExternals()],
+    output:{
+        filename:"bundle.js",
+        path:path.resolve(__dirname,"build"),
+    },
+    module:{
+        rules:[
+            {
+                test:/\.js$/,
+                loader:"babel-loader",
+                exclude:/node_modules/,
+                options:{
+                    presets:['@babel/preset-react',['@babel/preset-env']]
+                }
+            }
+        ]
+    }
+}
+```
+3. 配置好上面的配置, 我们再安装一下这些依赖:
+
+```bash
+npm install webpack webpack-cli webpack-node-externals @babel/core @babel/preset-env @babel/preset-react -D
+```
+
+4. 修改 package.json 里面的 script:
+
+***package.json***
+```js
+"scripts": {
+    "dev:server":"webpack --config webpack.server.js --watch",
+    "dev:start":"nodemon --watch build --exec node \"./build/bundle.js\""
+},
+```
+
+#### ssr 服务端开发
+
+1. 安装依赖
+
+```bash
+npm install nodemon -g
+npm install react react-dom babel-loader express --save
+```
+
+2. 新建一个 server/index.js, 用来开发 server 端代码:
+
+***server/index.js***
+```js
+import React from 'react';
+import { renderToString } from 'react-dom/server';
+import express from 'express';
+
+import App from '../src/App';
+
+const app = express();
+
+app.get('/',(req,res) =>{
+    const page = <App></App>;
+    const content = renderToString(page);
+
+    res.send(
+        `
+        <html>
+            <head>
+                <meta charset="utf-8" />
+                <title> SSR </title>
+            </head>
+            <body>
+                <div id="root">${ content }</div>
+            </body>
+        </html>
+        `
+    )
+})
+
+app.listen(9093,()=>{ console.log("server lisenter on http://localhost:9093") });
+
+```
+3. 执行 npm run dev:server  如果终端中出现了一下字样, 说明我们的服务端已经打包完成;
+
+```bash
+asset bundle.js 7.07 KiB [emitted] (name: main)
+runtime modules 937 bytes 4 modules
+built modules 995 bytes [built]
+  cacheable modules 869 bytes
+    ./server/index.js 670 bytes [built] [code generated]
+    ./src/App.js 199 bytes [built] [code generated]
+  external "react" 42 bytes [built] [code generated]
+  external "react-dom/server" 42 bytes [built] [code generated]
+  external "express" 42 bytes [built] [code generated]
+webpack 5.44.0 compiled successfully in 864 ms
+```
+
+然后再打开终端, 启动客户端服务, 执行 npm start;
+
+这个时候我们用浏览器打开 http://localhost:9093 就可以看到服务端渲染出来的 react 页面被渲染出来了;
+
+
+#### 实现 Hooks 累加器
+
+1. 改造一下 src/App.js , 写一个 hooks 的累加, 给一个点击按钮累加的操作;
+
+***src/App.js***
+```js
+import React,{useState} from 'react';
+
+function App(){
+    const [count, setCount] = useState(0);
+    return (
+        <div>
+            <h1> 这是一个 SSR 服务端渲染应用  { count }</h1>
+            <button onClick={()=> {setCount(count + 1)}}>累加</button>
+        </div>
+    )
+}
+
+export default App;
+```
+这个时候编译运行, 在浏览器上能看到按钮, 但是, 是没有任何效果的; 因此我们还需要对客户端进行修改;
+
+2. 新建一个 client 目录, client/index.js 
+
+***client/index.js ***
+```js
+import React from 'react';
+import ReactDom from 'react-dom';
+import App from '../src/App';
+
+// 客户端入口
+ReactDom.hydrate(App,document.getElementById("root"));
+```
+
+3. 客户端的代码依然是需要 webpack 支持, 因此还需要在根目录新建一个 webpack.client.js;
+
+***webpack.client.js***
+```js
+const path = require('path');
+
+module.exports = {
+    mode:"development",
+    entry:"./client/index.js",
+    output:{
+        filename:"bundle.js",
+        path:path.resolve(__dirname,"dist"),
+    },
+    module:{
+        rules:[
+            {
+                test:/\.js$/,
+                loader:"babel-loader",
+                exclude:/node_modules/,
+                options:{
+                    presets:['@babel/preset-react',['@babel/preset-env']]
+                }
+            }
+        ]
+    }
+}
+```
+
+4. 配置完客户端 webpack 配置之后, 需要在 package.json 里面新增一条 script 命令:
+
+***package.json***
+```js
+"scripts": {
+    "dev:server": "webpack --config webpack.server.js --watch",
+    "dev:start": "nodemon --watch build --exec node \"./build/bundle.js\"",
+    "dev:client":"webpack --config webpack.client.js --watch"
+}
+```
+执行 npm run dev:client, 再访问 localhost:9030, 点击按钮, 这个时候其实还是没有反应的, 因为我们客户端打包的 bundle 还没有被加载进来, 因此还需要修改一下 server/index.js
+
+***server/index.js***
+```js
+import React from 'react';
+import { renderToString } from 'react-dom/server';
+import express from 'express';
+
+import App from '../src/App';
+
+const app = express();
+
+// 设置 express 的静态资源为 dist 目录, 下面的 bundle 被打包到了 dist 目录下, 直接 /bundle 就可以引用了;
+app.use(express.static('dist'));
+
+app.get('/',(req,res) =>{
+    const content = renderToString(App);
+    console.log(content);
+    res.send(
+        `
+        <html>
+            <head>
+                <meta charset="utf-8" />
+                <title> SSR </title>
+            </head>
+            <body>
+                <div id="root">${ content }</div>
+                <script src="/bundle.js"></script>
+            </body>
+        </html>
+        `
+    )
+})
+
+app.listen(9093,()=>{ console.log("server lisenter on http://localhost:9093") });
+```
+
+#### 使用 concurrent 
+
+上面我们实现了 ssr 基础的渲染, 但是我们每次启动 ssr 服务的时候需要同时启动三个服务, 这个时候就可以使用 concurrently 来进行一次启动多个服务了;
+
+```bash
+npm install concurrently --save
+```
+安装完成之后, 在 package.json 里面新增一条命令;
+
+***package.json***
+```js
+"scripts": {
+    "start": "concurrently \"npm run dev:server\" \"npm run dev:start\" \"npm run dev:client\"",
+    "dev:server": "webpack --config webpack.server.js --watch",
+    "dev:start": "nodemon --watch build --exec node \"./build/bundle.js\"",
+    "dev:client": "webpack --config webpack.client.js --watch"
+}
+```
+配置完成之后, 几个终端都可以关掉, 只需要运行 npm run start, 就可以直接拉起来三个服务了;
+
+
+#### ssr 路由支持
+
+客户端路由是由 react-router 提供的, 而 ssr 渲染用户首先访问的是服务端, 服务端监听对应的路由 (req.url) 来做相应的操作;
+
+```bash
+# 安装
+npm install react-router-dom --save
+```
+
+1. 改造一下客户端代码; 
+
+```txt
+--- src
+  |--- pages
+    |-- Home.js
+    |-- About.js
+  |--- App.js
+```
+
+***src/App.js***
+```js
+import React from 'react';
+import { Route } from 'react-router-dom';
+import Home from './pages/Home';
+import About from './pages/About';
+
+
+export default (
+    <div>
+        <Route exact path="/" component={ Home }></Route>
+        <Route exact path="/about" component={ About }></Route>
+    </div>
+)
+```
+
+***src/pages/Home.js***
+```js
+import React,{useState} from 'react';
+
+function Home(){
+    const [count, setCount] = useState(0);
+    return (
+        <div>
+            <h1> 这是一个 SSR 服务端渲染应用  { count }</h1>
+            <button onClick={()=> {setCount(count + 1)}}>累加</button>
+        </div>
+    )
+}
+
+export default Home;
+```
+
+***src/pages/About.js***
+```js
+import React from 'react';
+
+function About(){
+    return (
+        <div>
+            <h1> 这是一个 SSR 服务端渲染应用  About 页面</h1>
+            
+        </div>
+    )
+}
+
+export default About;
+```
+服务端也需要做相应的修改, 这里服务端使用 StaticRouter 来做路由映射;
+
+***server/index.js***
+```js
+import React from 'react';
+import { renderToString } from 'react-dom/server';
+import express from 'express';
+import { StaticRouter } from 'react-router-dom';
+import App from '../src/App';
+
+const app = express();
+
+app.use(express.static('dist'));
+
+app.get('*',(req,res) =>{
+    const content = renderToString(
+        <StaticRouter location={ req.url }>
+            { App }
+        </StaticRouter>
+    );
+    console.log(content);
+    res.send(
+        `
+        <html>
+            <head>
+                <meta charset="utf-8" />
+                <title> SSR </title>
+            </head>
+            <body>
+                <div id="root">${ content }</div>
+                <script src="/bundle.js"></script>
+            </body>
+        </html>
+        `
+    )
+})
+
+app.listen(9093,()=>{ console.log("server lisenter on http://localhost:9093") });
+
+```
+client 端使用 BrowserRouter 来做路由跳转
+
+***client/index.js***
+```js
+import React from 'react';
+import ReactDom from 'react-dom';
+import App from '../src/App';
+import { BrowserRouter } from 'react-router-dom';
+
+
+const Page = <BrowserRouter>
+    { App }
+</BrowserRouter>
+
+// 客户端入口
+ReactDom.hydrate(Page,document.getElementById("root"));
+```
+
 
 

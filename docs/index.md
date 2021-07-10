@@ -39,5 +39,5 @@ web前端开发 , 主要接触到的语言就是 ` Javascript ` , 主要技术�
 
  - [Zeal](https://zealdocs.org/) 一款离线翻阅文档的利器
 
-
+ - [shields.io](https://shields.io/) github 风格小标签生成
 
